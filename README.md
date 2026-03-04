@@ -12,7 +12,7 @@ uv sync
 
 ### validate
 
-Check a bundle is well-formed.
+Check a bundle is well-formed. Exits 0 on success, 1 with one error per line on failure. All errors are reported (not fail-fast).
 
 ```bash
 python -m loadout validate <bundle-dir>
