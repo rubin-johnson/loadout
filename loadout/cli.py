@@ -1,5 +1,6 @@
 import argparse
 import sys
+from pathlib import Path
 
 from loadout.validate import validate_bundle
 from loadout.apply import atomic_apply
@@ -16,7 +17,9 @@ def main() -> None:
     )
     subparsers = parser.add_subparsers(dest="command", metavar="command")
 
-    subparsers.add_parser("validate", help="Validate a loadout bundle structure")
+    p_validate = subparsers.add_parser("validate", help="Validate a loadout bundle structure")
+    p_validate.add_argument("bundle", help="Path to bundle directory")
+
     subparsers.add_parser("apply", help="Apply a loadout bundle to the current environment")
     subparsers.add_parser("restore", help="Restore previous configuration from a backup")
     subparsers.add_parser("capture", help="Capture current configuration as a loadout bundle")
@@ -32,7 +35,12 @@ def main() -> None:
 
     try:
         if args.command == "validate":
-            validate_bundle(None)
+            errors = validate_bundle(Path(args.bundle))
+            if errors:
+                for e in errors:
+                    print(e)
+                sys.exit(1)
+            print("OK")
         elif args.command == "apply":
             atomic_apply(None)
         elif args.command == "restore":
