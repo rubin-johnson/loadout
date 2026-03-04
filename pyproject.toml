@@ -7,13 +7,15 @@ name = "loadout"
 version = "0.0.1"
 description = "CLI tool to manage Claude Code configuration bundles"
 requires-python = ">=3.11"
-dependencies = ["pyyaml>=6.0"]
+dependencies = [
+    "pyyaml>=6.0",
+]
 
 [project.scripts]
-loadout = "loadout.cli:main"
+loadout = "loadout.__main__:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["loadout"]
+packages = ["src/loadout"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
