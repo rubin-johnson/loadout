@@ -1,8 +1,23 @@
+# Python
 __pycache__/
 *.py[cod]
-*.egg-info/
 .venv/
+*.egg-info/
 dist/
 build/
+
+# Runtime state
+docs/plans/plan_state.json
+docs/plans/conflicts/
+
+# Claude Code internal dirs
+.claude/
+.claire/
+
+# Test artifacts
 .pytest_cache/
-*.egg
+.coverage
+htmlcov/
+
+# OS
+.DS_Store
