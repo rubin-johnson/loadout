@@ -1,3 +1,4 @@
+import os
 import subprocess
 import sys
 import pathlib
@@ -134,6 +135,48 @@ def test_bt004_valid_bundle(tmp_path):
     _make_valid_bundle(bundle)
     r = _run_validate(bundle)
     assert r.returncode == 0
+
+
+def test_bt003_no_tty_target(tmp_path):
+    bundle = tmp_path / "bundle"
+    bundle.mkdir()
+    (bundle / "manifest.yaml").write_text(
+        "name: ci-test\nversion: 0.1.0\nauthor: ci\ndescription: d\n"
+        "targets:\n  - path: config.md\n    dest: config.md\n"
+    )
+    (bundle / "config.md").write_text("# ci config")
+
+    target = tmp_path / "claude"
+    target.mkdir()
+
+    r = subprocess.run(
+        [sys.executable, "-m", "loadout", "apply", str(bundle),
+         "--target", str(target), "--yes"],
+        capture_output=True, text=True, stdin=subprocess.DEVNULL
+    )
+    assert r.returncode == 0, r.stderr
+    assert (target / "config.md").read_text() == "# ci config"
+
+
+def test_bt003_env_var_target(tmp_path):
+    bundle = tmp_path / "bundle"
+    bundle.mkdir()
+    (bundle / "manifest.yaml").write_text(
+        "name: ci-test\nversion: 0.1.0\nauthor: ci\ndescription: d\n"
+        "targets:\n  - path: config.md\n    dest: config.md\n"
+    )
+    (bundle / "config.md").write_text("# env config")
+
+    target = tmp_path / "claude"
+    target.mkdir()
+
+    env = {**os.environ, "LOADOUT_TARGET_ROOT": str(target)}
+    r = subprocess.run(
+        [sys.executable, "-m", "loadout", "apply", str(bundle), "--yes"],
+        capture_output=True, text=True, stdin=subprocess.DEVNULL, env=env
+    )
+    assert r.returncode == 0, r.stderr
+    assert (target / "config.md").read_text() == "# env config"
 
 
 def test_bt002_partial_failure_atomic(tmp_path):
