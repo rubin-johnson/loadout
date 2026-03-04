@@ -1,6 +1,7 @@
 import subprocess
 import sys
 import pathlib
+import pytest
 import yaml
 
 
@@ -133,3 +134,29 @@ def test_bt004_valid_bundle(tmp_path):
     _make_valid_bundle(bundle)
     r = _run_validate(bundle)
     assert r.returncode == 0
+
+
+def test_bt002_partial_failure_atomic(tmp_path):
+    from loadout.apply import atomic_apply
+    from loadout.manifest import load_manifest
+    from unittest.mock import patch
+
+    bundle = tmp_path / "bundle"
+    bundle.mkdir()
+    (bundle / "manifest.yaml").write_text(
+        "name: test\nversion: 0.1.0\nauthor: ci\ndescription: d\n"
+        "targets:\n  - path: a.txt\n    dest: a.txt\n"
+    )
+    (bundle / "a.txt").write_text("new")
+
+    target = tmp_path / "target"
+    target.mkdir()
+    (target / "a.txt").write_text("original")
+
+    manifest = load_manifest(bundle)
+
+    with patch("loadout.apply.shutil.move", side_effect=OSError("disk full")):
+        with pytest.raises(OSError):
+            atomic_apply(bundle, target, manifest)
+
+    assert (target / "a.txt").read_text() == "original"
