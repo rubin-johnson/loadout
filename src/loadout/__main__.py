@@ -2,13 +2,8 @@
 from __future__ import annotations
 
 import argparse
-import os
 import sys
 from pathlib import Path
-
-
-def _default_target() -> Path:
-    return Path.home() / ".claude"
 
 
 def cmd_validate(args: argparse.Namespace) -> int:
@@ -25,13 +20,9 @@ def cmd_validate(args: argparse.Namespace) -> int:
 
 def cmd_apply(args: argparse.Namespace) -> int:
     from loadout.apply import apply_bundle
+    from loadout.paths import get_target_root
     bundle = Path(args.bundle)
-    if args.target:
-        target = Path(args.target)
-    elif os.environ.get("LOADOUT_TARGET_ROOT"):
-        target = Path(os.environ["LOADOUT_TARGET_ROOT"])
-    else:
-        target = _default_target()
+    target = get_target_root(args.target)
     try:
         apply_bundle(bundle, target, yes=args.yes, dry_run=args.dry_run)
         if not args.dry_run:
@@ -44,14 +35,16 @@ def cmd_apply(args: argparse.Namespace) -> int:
 
 def cmd_status(args: argparse.Namespace) -> int:
     from loadout.status import show_status
-    target = Path(args.target) if args.target else _default_target()
+    from loadout.paths import get_target_root
+    target = get_target_root(args.target)
     show_status(target)
     return 0
 
 
 def cmd_restore(args: argparse.Namespace) -> int:
     from loadout.restore import restore_bundle
-    target = Path(args.target) if args.target else _default_target()
+    from loadout.paths import get_target_root
+    target = get_target_root(args.target)
     try:
         restore_bundle(target, backup=args.backup, yes=args.yes)
     except ValueError as e:

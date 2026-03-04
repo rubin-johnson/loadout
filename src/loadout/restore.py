@@ -21,26 +21,35 @@ def restore_bundle(target: Path, backup: str | None = None, yes: bool = False) -
             # Find the most recent backup by directory name
             backup_root = target / BACKUP_DIR
             if not backup_root.exists():
-                print("No backups found. Nothing to restore.")
-                return
+                raise ValueError("No backups found. Nothing to restore.")
             backups = sorted(backup_root.iterdir())
             if not backups:
-                print("No backups found. Nothing to restore.")
-                return
+                raise ValueError("No backups found. Nothing to restore.")
             backup = backups[-1].name
 
     backup_dir = target / BACKUP_DIR / backup
     if not backup_dir.exists():
         raise ValueError(f"Backup not found: {backup_dir}")
 
-    # Clear current target contents (except backups dir) before restoring
-    for item in target.iterdir():
-        if item.name == BACKUP_DIR:
-            continue
-        if item.is_dir():
-            shutil.rmtree(item)
-        else:
-            item.unlink()
+    # Remove only files/dirs that apply placed (from state), not unrelated files.
+    placed_paths = (state or {}).get("placed_paths", [])
+    if placed_paths:
+        for path_str in placed_paths:
+            p = Path(path_str)
+            if p.exists():
+                if p.is_dir():
+                    shutil.rmtree(p)
+                else:
+                    p.unlink()
+    else:
+        # Legacy: no placed_paths in state — clear everything except backups dir
+        for item in target.iterdir():
+            if item.name == BACKUP_DIR:
+                continue
+            if item.is_dir():
+                shutil.rmtree(item)
+            else:
+                item.unlink()
 
     # Restore each file/dir from backup
     for item in backup_dir.iterdir():
@@ -52,3 +61,6 @@ def restore_bundle(target: Path, backup: str | None = None, yes: bool = False) -
 
     clear_state(target)
     print(f"Restored from backup: {backup}")
+
+# Alias for backward compatibility with tests
+restore_command = restore_bundle

@@ -1,13 +1,27 @@
 """Bundle manifest loading and validation."""
 from __future__ import annotations
 
+import re
 import yaml
 from pathlib import Path
 from dataclasses import dataclass, field
 from typing import Any
 
 
-REQUIRED_FIELDS = {"name", "version", "author", "description", "targets"}
+_REQUIRED_FIELDS = {"name", "version", "author", "description", "targets"}
+
+_SEMVER_RE = re.compile(
+    r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)"
+    r"(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?"
+    r"(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$"
+)
+
+# Keep for backward compat
+REQUIRED_FIELDS = _REQUIRED_FIELDS
+
+
+class ManifestError(ValueError):
+    pass
 
 
 @dataclass
@@ -26,25 +40,23 @@ class Manifest:
 
     @classmethod
     def load(cls, bundle_path: Path) -> "Manifest":
-        manifest_file = bundle_path / "manifest.yaml"
-        if not manifest_file.exists():
-            raise ValueError(f"manifest.yaml not found in {bundle_path}")
-        with manifest_file.open() as f:
-            data = yaml.safe_load(f)
-        return cls.from_dict(data)
+        return load_manifest(bundle_path)
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "Manifest":
-        missing = REQUIRED_FIELDS - set(data.keys())
+        missing = _REQUIRED_FIELDS - set(data.keys())
         if missing:
-            raise ValueError(f"manifest.yaml missing required fields: {missing}")
+            raise ManifestError(f"manifest.yaml missing required fields: {sorted(missing)}")
+        version = data["version"]
+        if not isinstance(version, str) or not _SEMVER_RE.match(str(version)):
+            raise ManifestError(f"invalid semver version: {version!r}")
         targets = [
             TargetEntry(path=t["path"], dest=t["dest"])
             for t in data["targets"]
         ]
         return cls(
             name=data["name"],
-            version=data["version"],
+            version=str(version),
             author=data["author"],
             description=data["description"],
             targets=targets,
@@ -58,3 +70,14 @@ class Manifest:
             "description": self.description,
             "targets": [{"path": t.path, "dest": t.dest} for t in self.targets],
         }
+
+
+def load_manifest(bundle_path: Path) -> Manifest:
+    manifest_file = Path(bundle_path) / "manifest.yaml"
+    if not manifest_file.exists():
+        raise ManifestError(f"manifest.yaml not found in {bundle_path}")
+    with manifest_file.open() as f:
+        data = yaml.safe_load(f)
+    if not isinstance(data, dict):
+        raise ManifestError("manifest.yaml must be a YAML mapping")
+    return Manifest.from_dict(data)

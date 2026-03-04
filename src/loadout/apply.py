@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import shutil
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -11,6 +12,54 @@ from loadout.validate import validate_bundle
 
 
 BACKUP_DIR = ".loadout-backups"
+
+
+def _resolve_dest(dest_str: str, target: Path) -> Path | None:
+    """Resolve a manifest dest string to an absolute path under target.
+    Returns None for absolute paths (not supported in --target mode).
+    """
+    if dest_str.startswith("~/.claude/"):
+        dest_str = dest_str[len("~/.claude/"):]
+    elif dest_str.startswith("~/"):
+        dest_str = dest_str[2:]
+    elif dest_str.startswith("/"):
+        return None
+    return target / dest_str
+
+
+def atomic_apply(bundle_path: Path, target: Path, manifest: Manifest) -> None:
+    """Copy manifest targets from bundle to target atomically.
+
+    Uses a temp dir + move strategy so a failure mid-copy leaves existing
+    files untouched. Does not back up, does not write state — callers handle that.
+    """
+    # Stage all files into a temp dir first, then move each into place
+    with tempfile.TemporaryDirectory(dir=target.parent) as staging_str:
+        staging = Path(staging_str)
+
+        staged: list[tuple[Path, Path]] = []  # (staged_path, final_dest)
+        for entry in manifest.targets:
+            src = bundle_path / entry.path
+            dest = _resolve_dest(entry.dest, target)
+            if dest is None:
+                continue
+            staged_dest = staging / entry.path
+            staged_dest.parent.mkdir(parents=True, exist_ok=True)
+            if src.is_dir():
+                shutil.copytree(src, staged_dest)
+            else:
+                shutil.copy2(src, staged_dest)
+            staged.append((staged_dest, dest))
+
+        # Move from staging to final location.
+        # For files: shutil.move → os.replace (atomic, replaces without pre-delete).
+        # For dirs: rmtree first, then move — not atomic, but directory replacement
+        #           can't be made atomic without OS-level tricks.
+        for staged_path, final_dest in staged:
+            final_dest.parent.mkdir(parents=True, exist_ok=True)
+            if final_dest.exists() and final_dest.is_dir():
+                shutil.rmtree(final_dest)
+            shutil.move(str(staged_path), final_dest)
 
 
 def apply_bundle(bundle_path: Path, target: Path, yes: bool = False, dry_run: bool = False) -> None:
@@ -23,49 +72,41 @@ def apply_bundle(bundle_path: Path, target: Path, yes: bool = False, dry_run: bo
     timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d-%H%M%S")
     backup_dir = target / BACKUP_DIR / timestamp
 
-    if not dry_run:
-        target.mkdir(parents=True, exist_ok=True)
-        backup_dir.mkdir(parents=True, exist_ok=True)
+    if dry_run:
+        for entry in manifest.targets:
+            dest = _resolve_dest(entry.dest, target)
+            if dest is not None:
+                print(f"  [dry-run] {bundle_path / entry.path} -> {dest}")
+        return
 
+    target.mkdir(parents=True, exist_ok=True)
+    backup_dir.mkdir(parents=True, exist_ok=True)
+
+    # Backup existing files before touching anything
     for entry in manifest.targets:
-        src = bundle_path / entry.path
-        # dest is relative if it starts with ~, make it relative to target
-        dest_str = entry.dest
-        if dest_str.startswith("~/.claude/"):
-            dest_str = dest_str[len("~/.claude/"):]
-        elif dest_str.startswith("/"):
-            # absolute path — not supported in target mode, skip
+        dest = _resolve_dest(entry.dest, target)
+        if dest is None or not dest.exists():
             continue
-
-        dest = target / dest_str
-        backup_dest = backup_dir / dest_str
-
-        if dry_run:
-            print(f"  [dry-run] {src} -> {dest}")
-            continue
-
-        # Backup existing file/dir if it exists
-        if dest.exists():
-            backup_dest.parent.mkdir(parents=True, exist_ok=True)
-            if dest.is_dir():
-                shutil.copytree(dest, backup_dest)
-            else:
-                shutil.copy2(dest, backup_dest)
-
-        # Copy from bundle to target
-        dest.parent.mkdir(parents=True, exist_ok=True)
-        if src.is_dir():
-            if dest.exists():
-                shutil.rmtree(dest)
-            shutil.copytree(src, dest)
+        backup_dest = backup_dir / entry.path
+        backup_dest.parent.mkdir(parents=True, exist_ok=True)
+        if dest.is_dir():
+            shutil.copytree(dest, backup_dest)
         else:
-            shutil.copy2(src, dest)
+            shutil.copy2(dest, backup_dest)
 
-    if not dry_run:
-        write_state(target, {
-            "active": manifest.name,
-            "applied_at": datetime.now(timezone.utc).isoformat(),
-            "bundle_path": str(bundle_path.resolve()),
-            "manifest_version": manifest.version,
-            "backup": timestamp,
-        })
+    placed_paths = [
+        str(_resolve_dest(e.dest, target))
+        for e in manifest.targets
+        if _resolve_dest(e.dest, target) is not None
+    ]
+
+    atomic_apply(bundle_path, target, manifest)
+
+    write_state(target, {
+        "active": manifest.name,
+        "applied_at": datetime.now(timezone.utc).isoformat(),
+        "bundle_path": str(bundle_path.resolve()),
+        "manifest_version": manifest.version,
+        "backup": timestamp,
+        "placed_paths": placed_paths,
+    })
