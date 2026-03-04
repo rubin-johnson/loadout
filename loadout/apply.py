@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+import datetime
 import pathlib
 import shutil
+import sys
 import tempfile
 
-from loadout.manifest import Manifest
+from loadout.manifest import Manifest, load_manifest
+from loadout.state import read_state, write_state
+from loadout.validate import validate_bundle
 
 
 def atomic_apply(
@@ -47,3 +51,54 @@ def atomic_apply(
             raise
     finally:
         shutil.rmtree(staging, ignore_errors=True)
+
+
+def apply_command(
+    bundle_dir: pathlib.Path,
+    target_dir: pathlib.Path,
+    yes: bool,
+    dry_run: bool,
+) -> None:
+    """Orchestrate validate → idempotency check → prompt → backup → apply → state."""
+    from loadout.backup import create_backup
+
+    errors = validate_bundle(bundle_dir)
+    if errors:
+        raise ValueError("Bundle validation failed:\n" + "\n".join(f"  - {e}" for e in errors))
+
+    manifest = load_manifest(bundle_dir)
+
+    state = read_state(target_dir)
+    if (
+        state is not None
+        and state.get("active") == manifest.name
+        and state.get("manifest_version") == manifest.version
+    ):
+        print("Already applied.")
+        return
+
+    if dry_run:
+        for entry in manifest.targets:
+            dest = target_dir / entry.dest
+            tag = "[OVERWRITE]" if dest.exists() else "[CREATE]"
+            print(f"{tag} {entry.dest}")
+        return
+
+    if sys.stdin.isatty() and not yes:
+        would_overwrite = any((target_dir / e.dest).exists() for e in manifest.targets)
+        if would_overwrite:
+            ans = input("Overwrite existing files? [y/N] ")
+            if ans.strip().lower() not in ("y", "yes"):
+                print("Aborted.")
+                return
+
+    target_dir.mkdir(parents=True, exist_ok=True)
+    ts = create_backup(target_dir)
+    atomic_apply(bundle_dir, target_dir, manifest)
+    write_state(target_dir, {
+        "active": manifest.name,
+        "manifest_version": manifest.version,
+        "backup": ts,
+        "bundle_path": str(bundle_dir.resolve()),
+        "applied_at": datetime.datetime.utcnow().isoformat() + "Z",
+    })
