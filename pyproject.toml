@@ -1,0 +1,19 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "loadout"
+version = "0.0.1"
+description = "CLI tool to manage Claude Code configuration bundles"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.scripts]
+loadout = "loadout.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["loadout"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
