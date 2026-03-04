@@ -57,7 +57,7 @@ def cmd_restore(args: argparse.Namespace) -> int:
 def cmd_capture(args: argparse.Namespace) -> int:
     from loadout.capture import capture_bundle
     source = Path(args.source) if args.source else _default_target()
-    output = Path(args.output)
+    output = Path(args.output) if args.output else Path.cwd() / "my-loadout"
     try:
         capture_bundle(source, output, yes=args.yes)
     except ValueError as e:
@@ -97,7 +97,7 @@ def build_parser() -> argparse.ArgumentParser:
     # capture
     p_capture = sub.add_parser("capture", help="Capture current config as a bundle")
     p_capture.add_argument("--source", default=None, help="Source directory (default: ~/.claude)")
-    p_capture.add_argument("--output", required=True, help="Output bundle directory")
+    p_capture.add_argument("--output", default=None, help="Output bundle directory")
     p_capture.add_argument("--yes", action="store_true", help="Skip confirmation prompts")
 
     return parser
