@@ -33,12 +33,19 @@ def restore_bundle(target: Path, backup: str | None = None, yes: bool = False) -
     if not backup_dir.exists():
         raise ValueError(f"Backup not found: {backup_dir}")
 
+    # Clear current target contents (except backups dir) before restoring
+    for item in target.iterdir():
+        if item.name == BACKUP_DIR:
+            continue
+        if item.is_dir():
+            shutil.rmtree(item)
+        else:
+            item.unlink()
+
     # Restore each file/dir from backup
     for item in backup_dir.iterdir():
         dest = target / item.name
         if item.is_dir():
-            if dest.exists():
-                shutil.rmtree(dest)
             shutil.copytree(item, dest)
         else:
             shutil.copy2(item, dest)
