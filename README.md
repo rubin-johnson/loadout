@@ -51,12 +51,19 @@ python -m loadout restore [--target <dir>] [--backup <timestamp>] [--yes]
 Capture the current config directory as a loadout bundle.
 
 ```bash
-python -m loadout capture --output <dir> [--source <dir>] [--yes]
+python -m loadout capture [--source <dir>] [--output <dir>] [--yes]
 ```
 
 - `--source`: Source directory to capture from (default: `~/.claude`)
-- `--output`: Destination bundle directory (required)
-- `--yes`: Overwrite if output already exists
+- `--output`: Destination bundle directory (default: `./my-loadout`)
+- `--yes`: Use defaults for name/version/description, skip prompts
+- `--name`: Bundle name (default: `my-loadout`)
+- `--description`: Bundle description (default: empty)
+- `--version`: Bundle version (default: `0.0.1`)
+
+Without `--yes`, prompts interactively for name, description, and version.
+Warns to stderr about secrets found in `hooks/` and `bin/` scripts and about
+non-capturable files (e.g. `*.db`). Database files are skipped; all others are copied.
 
 ## Bundle structure
 

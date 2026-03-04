@@ -1,14 +1,25 @@
+Now I have enough context to produce the resolved file. The key resolution decisions:
+1. Use `import pathlib` (incoming), drop `from pathlib import Path`
+2. Use the incoming's detailed parser subcommands (with `--dry-run`, `--backup`, `--name`, etc.)
+3. Use `pathlib.Path` consistently throughout
+4. For the command handlers: use HEAD logic adapted to pathlib, add capture handler with all new args
+
+```python
 import argparse
 import sys
-from pathlib import Path
+import pathlib
 
 from loadout.validate import validate_bundle
 from loadout.apply import atomic_apply
 from loadout.manifest import load_manifest
 from loadout.restore import restore_backup
-from loadout.capture import capture
+from loadout.capture import capture_command
 from loadout.status import get_status
 from loadout import paths
+
+
+def _default_target() -> pathlib.Path:
+    return pathlib.Path.home() / ".claude"
 
 
 def main() -> None:
@@ -23,13 +34,25 @@ def main() -> None:
 
     p_apply = subparsers.add_parser("apply", help="Apply a loadout bundle to the current environment")
     p_apply.add_argument("bundle", help="Path to bundle directory")
-    p_apply.add_argument("--target", metavar="DIR", help="Target directory (overrides LOADOUT_TARGET_ROOT)")
+    p_apply.add_argument("--target", default=None, help="Target directory (default: ~/.claude)")
     p_apply.add_argument("--yes", action="store_true", help="Skip confirmation prompts")
-    subparsers.add_parser("restore", help="Restore previous configuration from a backup")
-    subparsers.add_parser("capture", help="Capture current configuration as a loadout bundle")
+    p_apply.add_argument("--dry-run", action="store_true", help="Show what would change without writing")
 
-    status_parser = subparsers.add_parser("status", help="Show what loadout is currently applied")
-    status_parser.add_argument("--target", metavar="DIR", help="Target directory (overrides LOADOUT_TARGET_ROOT)")
+    p_restore = subparsers.add_parser("restore", help="Restore previous configuration from a backup")
+    p_restore.add_argument("--target", default=None, help="Target directory (default: ~/.claude)")
+    p_restore.add_argument("--backup", default=None, help="Backup timestamp to restore")
+    p_restore.add_argument("--yes", action="store_true", help="Skip confirmation prompts")
+
+    p_capture = subparsers.add_parser("capture", help="Capture current configuration as a loadout bundle")
+    p_capture.add_argument("--source", default=None, help="Source directory (default: ~/.claude)")
+    p_capture.add_argument("--output", default=None, help="Output bundle directory (default: ./my-loadout)")
+    p_capture.add_argument("--yes", action="store_true", help="Skip confirmation prompts, use defaults")
+    p_capture.add_argument("--name", default=None, help="Bundle name")
+    p_capture.add_argument("--description", default=None, help="Bundle description")
+    p_capture.add_argument("--version", default=None, help="Bundle version")
+
+    p_status = subparsers.add_parser("status", help="Show what loadout is currently applied")
+    p_status.add_argument("--target", default=None, help="Target directory (default: ~/.claude)")
 
     args = parser.parse_args()
 
@@ -39,31 +62,43 @@ def main() -> None:
 
     try:
         if args.command == "validate":
-            errors = validate_bundle(Path(args.bundle))
+            errors = validate_bundle(pathlib.Path(args.bundle))
             if errors:
                 for e in errors:
                     print(e)
                 sys.exit(1)
             print("OK")
         elif args.command == "apply":
-            bundle_dir = Path(args.bundle)
+            bundle_dir = pathlib.Path(args.bundle)
             target_dir = paths.get_target_root(args.target)
             manifest = load_manifest(bundle_dir)
-            atomic_apply(bundle_dir, target_dir, manifest)
+            if args.dry_run:
+                for entry in manifest.targets:
+                    print(f"Would write: {entry.dest}")
+            else:
+                atomic_apply(bundle_dir, target_dir, manifest)
         elif args.command == "restore":
-            restore_backup()
+            target_dir = paths.get_target_root(args.target)
+            restore_backup(backup_timestamp=args.backup, target_root=target_dir)
         elif args.command == "capture":
-            capture()
+            source = pathlib.Path(args.source) if args.source else pathlib.Path.home() / ".claude"
+            output = pathlib.Path(args.output) if args.output else pathlib.Path.cwd() / "my-loadout"
+            capture_command(
+                source,
+                output,
+                yes=args.yes,
+                name=args.name or "my-loadout",
+                description=args.description or "",
+                version=args.version or "0.0.1",
+            )
         elif args.command == "status":
             target_dir = paths.get_target_root(args.target)
             state = get_status(target_dir)
-            if state is None:
-                print("No loadout currently applied.")
+            if state:
+                print(state)
             else:
-                print(f"Name:    {state['active']}")
-                print(f"Version: {state['manifest_version']}")
-                print(f"Applied: {state['applied_at']}")
-                print(f"Bundle:  {state['bundle_path']}")
-    except NotImplementedError:
-        print(f"loadout {args.command}: not implemented", file=sys.stderr)
+                print("No loadout applied.")
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
+```
