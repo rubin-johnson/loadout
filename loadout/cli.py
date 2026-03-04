@@ -5,7 +5,7 @@ import pathlib
 from loadout.validate import validate_bundle
 from loadout.apply import apply_command
 from loadout.manifest import load_manifest
-from loadout.restore import restore_backup
+from loadout.restore import restore_command
 from loadout.capture import capture_command
 from loadout.status import get_status
 from loadout import paths
@@ -67,7 +67,7 @@ def main() -> None:
             apply_command(bundle_dir, target_dir, yes=args.yes, dry_run=args.dry_run)
         elif args.command == "restore":
             target_dir = paths.get_target_root(args.target)
-            restore_backup(backup_timestamp=args.backup, target_root=target_dir)
+            restore_command(target_dir, backup_ts=args.backup, yes=args.yes)
         elif args.command == "capture":
             source = pathlib.Path(args.source) if args.source else pathlib.Path.home() / ".claude"
             output = pathlib.Path(args.output) if args.output else pathlib.Path.cwd() / "my-loadout"
