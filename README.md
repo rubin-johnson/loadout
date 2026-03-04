@@ -19,7 +19,7 @@ loadout apply <bundle-dir> [--target <dir>] [--yes] [--dry-run]
 loadout restore [--backup <timestamp>]
 
 # Show what loadout is currently applied
-loadout status
+loadout status [--target <dir>]
 
 # Capture current ~/.claude config as a loadout bundle
 loadout capture [--output ./my-loadout] [--yes]
