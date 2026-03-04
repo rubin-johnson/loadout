@@ -64,3 +64,72 @@ def test_bt005_smoke_capture(tmp_path):
     r = _cli("capture", "--source", str(source), "--output", str(out), "--yes")
     assert r.returncode == 0, r.stderr
     assert (out / "manifest.yaml").exists()
+
+
+def _run_validate(bundle_path):
+    return subprocess.run(
+        [sys.executable, "-m", "loadout", "validate", str(bundle_path)],
+        capture_output=True, text=True
+    )
+
+
+def _make_valid_bundle(path: pathlib.Path):
+    path.mkdir(parents=True, exist_ok=True)
+    (path / "CLAUDE.md").write_text("# test")
+    (path / "manifest.yaml").write_text(yaml.dump({
+        "name": "t", "version": "0.1.0", "author": "a",
+        "description": "d",
+        "targets": [{"path": "CLAUDE.md", "dest": "~/.claude/CLAUDE.md"}]
+    }))
+
+
+def test_bt004_missing_manifest(tmp_path):
+    bundle = tmp_path / "bundle"
+    bundle.mkdir()
+    r = _run_validate(bundle)
+    assert r.returncode != 0
+    assert "manifest" in r.stdout.lower() or "manifest" in r.stderr.lower()
+
+
+def test_bt004_missing_required_field(tmp_path):
+    bundle = tmp_path / "bundle"
+    bundle.mkdir()
+    (bundle / "manifest.yaml").write_text(
+        "name: t\nversion: 0.1.0\ndescription: d\ntargets: []\n"
+    )
+    r = _run_validate(bundle)
+    assert r.returncode != 0
+    out = r.stdout + r.stderr
+    assert "author" in out.lower()
+
+
+def test_bt004_invalid_semver(tmp_path):
+    bundle = tmp_path / "bundle"
+    bundle.mkdir()
+    (bundle / "manifest.yaml").write_text(yaml.dump({
+        "name": "t", "version": "not-semver", "author": "a",
+        "description": "d", "targets": []
+    }))
+    r = _run_validate(bundle)
+    assert r.returncode != 0
+
+
+def test_bt004_missing_target_file(tmp_path):
+    bundle = tmp_path / "bundle"
+    bundle.mkdir()
+    (bundle / "manifest.yaml").write_text(yaml.dump({
+        "name": "t", "version": "0.1.0", "author": "a",
+        "description": "d",
+        "targets": [{"path": "missing.md", "dest": "~/.claude/missing.md"}]
+    }))
+    r = _run_validate(bundle)
+    assert r.returncode != 0
+    out = r.stdout + r.stderr
+    assert "missing.md" in out
+
+
+def test_bt004_valid_bundle(tmp_path):
+    bundle = tmp_path / "bundle"
+    _make_valid_bundle(bundle)
+    r = _run_validate(bundle)
+    assert r.returncode == 0
