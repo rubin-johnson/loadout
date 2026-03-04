@@ -1,4 +1,3 @@
-```python
 from __future__ import annotations
 
 import pathlib
@@ -33,4 +32,3 @@ def validate_bundle(bundle_path: pathlib.Path | None) -> list[str]:
             errors.append(f"Target source not found in bundle: {target.path}")
 
     return errors
-```

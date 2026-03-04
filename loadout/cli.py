@@ -1,16 +1,9 @@
-Now I have enough context to produce the resolved file. The key resolution decisions:
-1. Use `import pathlib` (incoming), drop `from pathlib import Path`
-2. Use the incoming's detailed parser subcommands (with `--dry-run`, `--backup`, `--name`, etc.)
-3. Use `pathlib.Path` consistently throughout
-4. For the command handlers: use HEAD logic adapted to pathlib, add capture handler with all new args
-
-```python
 import argparse
 import sys
 import pathlib
 
 from loadout.validate import validate_bundle
-from loadout.apply import atomic_apply
+from loadout.apply import apply_command
 from loadout.manifest import load_manifest
 from loadout.restore import restore_backup
 from loadout.capture import capture_command
@@ -71,12 +64,7 @@ def main() -> None:
         elif args.command == "apply":
             bundle_dir = pathlib.Path(args.bundle)
             target_dir = paths.get_target_root(args.target)
-            manifest = load_manifest(bundle_dir)
-            if args.dry_run:
-                for entry in manifest.targets:
-                    print(f"Would write: {entry.dest}")
-            else:
-                atomic_apply(bundle_dir, target_dir, manifest)
+            apply_command(bundle_dir, target_dir, yes=args.yes, dry_run=args.dry_run)
         elif args.command == "restore":
             target_dir = paths.get_target_root(args.target)
             restore_backup(backup_timestamp=args.backup, target_root=target_dir)
@@ -101,4 +89,3 @@ def main() -> None:
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
-```

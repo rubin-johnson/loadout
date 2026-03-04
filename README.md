@@ -27,8 +27,10 @@ python -m loadout apply <bundle-dir> [--target <dir>] [--yes] [--dry-run]
 ```
 
 - `--target`: Directory to apply into (default: `~/.claude`)
-- `--yes`: Skip confirmation prompts
+- `--yes`: Skip confirmation prompts (required for CI/non-TTY)
 - `--dry-run`: Show what would change without writing anything
+
+Applying the same bundle (name + version) twice is idempotent: the second run prints `Already applied.` and exits 0 without creating a duplicate backup. After a successful apply, `.loadout-state.json` is written to the target directory with the active bundle name, version, backup timestamp, and bundle path.
 
 ### status
 
