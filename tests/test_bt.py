@@ -179,6 +179,40 @@ def test_bt003_env_var_target(tmp_path):
     assert (target / "config.md").read_text() == "# env config"
 
 
+def _dir_checksums(path: pathlib.Path) -> dict:
+    result = {}
+    for f in sorted(path.rglob("*")):
+        if f.is_file() and ".loadout-" not in str(f):
+            result[str(f.relative_to(path))] = f.read_bytes()
+    return result
+
+
+def test_bt001_roundtrip(tmp_path):
+    bundle = tmp_path / "bundle"
+    bundle.mkdir()
+    (bundle / "manifest.yaml").write_text(
+        "name: test\nversion: 0.1.0\nauthor: ci\ndescription: d\n"
+        "targets:\n  - path: CLAUDE.md\n    dest: CLAUDE.md\n"
+    )
+    (bundle / "CLAUDE.md").write_text("# test")
+
+    target = tmp_path / "target"
+    target.mkdir()
+    (target / "CLAUDE.md").write_text("# original")
+    (target / "extra.txt").write_text("keep me")
+
+    before = _dir_checksums(target)
+
+    r = _cli("apply", str(bundle), "--target", str(target), "--yes")
+    assert r.returncode == 0, r.stderr
+
+    r = _cli("restore", "--target", str(target), "--yes")
+    assert r.returncode == 0, r.stderr
+
+    after = _dir_checksums(target)
+    assert before == after
+
+
 def test_bt002_partial_failure_atomic(tmp_path):
     from loadout.apply import atomic_apply
     from loadout.manifest import load_manifest
