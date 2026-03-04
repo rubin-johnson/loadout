@@ -4,6 +4,7 @@ from pathlib import Path
 
 from loadout.validate import validate_bundle
 from loadout.apply import atomic_apply
+from loadout.manifest import load_manifest
 from loadout.restore import restore_backup
 from loadout.capture import capture
 from loadout.status import get_status
@@ -20,7 +21,10 @@ def main() -> None:
     p_validate = subparsers.add_parser("validate", help="Validate a loadout bundle structure")
     p_validate.add_argument("bundle", help="Path to bundle directory")
 
-    subparsers.add_parser("apply", help="Apply a loadout bundle to the current environment")
+    p_apply = subparsers.add_parser("apply", help="Apply a loadout bundle to the current environment")
+    p_apply.add_argument("bundle", help="Path to bundle directory")
+    p_apply.add_argument("--target", metavar="DIR", help="Target directory (overrides LOADOUT_TARGET_ROOT)")
+    p_apply.add_argument("--yes", action="store_true", help="Skip confirmation prompts")
     subparsers.add_parser("restore", help="Restore previous configuration from a backup")
     subparsers.add_parser("capture", help="Capture current configuration as a loadout bundle")
 
@@ -42,7 +46,10 @@ def main() -> None:
                 sys.exit(1)
             print("OK")
         elif args.command == "apply":
-            atomic_apply(None)
+            bundle_dir = Path(args.bundle)
+            target_dir = paths.get_target_root(args.target)
+            manifest = load_manifest(bundle_dir)
+            atomic_apply(bundle_dir, target_dir, manifest)
         elif args.command == "restore":
             restore_backup()
         elif args.command == "capture":
