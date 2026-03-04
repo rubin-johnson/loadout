@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from pathlib import Path
 
@@ -25,7 +26,12 @@ def cmd_validate(args: argparse.Namespace) -> int:
 def cmd_apply(args: argparse.Namespace) -> int:
     from loadout.apply import apply_bundle
     bundle = Path(args.bundle)
-    target = Path(args.target) if args.target else _default_target()
+    if args.target:
+        target = Path(args.target)
+    elif os.environ.get("LOADOUT_TARGET_ROOT"):
+        target = Path(os.environ["LOADOUT_TARGET_ROOT"])
+    else:
+        target = _default_target()
     try:
         apply_bundle(bundle, target, yes=args.yes, dry_run=args.dry_run)
         if not args.dry_run:
