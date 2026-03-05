@@ -21,3 +21,6 @@ htmlcov/
 
 # OS
 .DS_Store
+
+# ralphael working directory
+.ralphael/
