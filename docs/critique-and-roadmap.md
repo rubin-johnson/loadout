@@ -144,21 +144,38 @@ For completeness — these are token_miser issues that don't change the loadout 
 
 ## Part 3: Roadmap
 
+See also: [docs/config-surface-area.md](config-surface-area.md) for the full analysis of Claude Code's configuration surface, MCP strategies, skills/plugins handling, and versioning considerations that inform this roadmap.
+
 ### Phase 1: Solidify the foundation
 
-**Goal:** Fix the gaps that make the MVP unreliable and make loadout a proper subprocess citizen.
+**Goal:** Fix the gaps that make the MVP unreliable, make loadout a proper subprocess citizen, and expand capture to cover the real config surface.
 
+**Cleanup & correctness:**
 - [ ] **Add manifest `schema_version` field** — default `1`, validate on load, error on unknown versions.
-- [ ] **Add `--json` output mode** — for `status`, `validate`, and `apply`. Structured output with applied files, skipped files, errors. Critical for token_miser and any programmatic consumer.
-- [ ] **Add `--no-backup` flag to `apply`** — for container/ephemeral contexts where backups are waste. token_miser should use this on every invocation.
-- [ ] **Document exit code contract** — 0 = success, 1 = validation error, 2 = apply error, etc. Publish in README and enforce in tests.
 - [ ] **Delete `backup.py`** — move any needed logic into apply/restore, remove dead code.
 - [ ] **Remove `REQUIRED_FIELDS` compat export** — no consumers to break.
 - [ ] **Warn on silently-skipped absolute dest paths** — print to stderr instead of swallowing.
 - [ ] **Error on empty capture** — don't create placeholder bundles.
+
+**Subprocess citizenship (for token_miser):**
+- [ ] **Add `--json` output mode** — for `status`, `validate`, and `apply`. Structured output with applied files, skipped files, errors.
+- [ ] **Add `--no-backup` flag to `apply`** — for container/ephemeral contexts where backups are waste.
+- [ ] **Document exit code contract** — 0 = success, 1 = validation error, 2 = apply error, etc.
 - [ ] **Add backup pruning** — `--keep N` on apply, or `loadout prune-backups --keep 3`.
-- [ ] **Add MCP config capture/apply** — discover and manage `mcp_servers.json` or equivalent. Without this, token_miser can't test MCP-heavy configurations.
-- [ ] **Configurable capture paths** — allow `manifest.yaml` or a capture config to declare additional paths.
+
+**Expand capture surface (the big one):**
+- [ ] **Make DEFAULT_CAPTURES configurable** — stop hardcoding. Allow manifest.yaml to declare additional capture paths.
+- [ ] **Capture `rules/`** — `~/.claude/rules/*.md` with YAML frontmatter. These are increasingly how teams encode conditional coding standards. Treat as a directory like `hooks/`.
+- [ ] **Capture `skills/`** — `~/.claude/skills/<name>/` directory trees. Each skill is a SKILL.md with optional supporting files and scripts. Capture verbatim — don't parse frontmatter.
+- [ ] **Capture `agents/`** — `~/.claude/agents/<name>.md` files. Simple markdown with YAML frontmatter.
+- [ ] **Capture `commands/`** — `~/.claude/commands/<name>.md` (legacy, still supported). Simple markdown files.
+- [ ] **Capture `keybindings.json`** — `~/.claude/keybindings.json`. Optional, minor, but part of a complete environment.
+- [ ] **Capture `statusline.json`** — `~/.claude/statusline.json`. Optional.
+- [ ] **MCP server capture/apply (Strategy A: extract-and-embed)** — extract `mcpServers` from `~/.claude.json` (user-scope only), strip secrets, store as `mcp/servers.json` in bundle. On apply, merge into target's `~/.claude.json` rather than overwrite. See [config-surface-area.md](config-surface-area.md) for full strategy analysis.
+
+**Claude Code versioning:**
+- [ ] **Add `claude_code_min_version` to manifest.yaml** — minimum Claude Code version the bundle was tested against. Check `claude --version` on apply and warn (not error) if too old.
+- [ ] **Add `claude_code_captured_version` to manifest.yaml** — version running during capture. Pure metadata for debugging and reproducibility.
 
 ### Phase 2: Distribution & sharing
 
@@ -167,29 +184,31 @@ For completeness — these are token_miser issues that don't change the loadout 
 - [ ] **`loadout apply ./bundle.tar.gz`** — support archived bundles (extract to temp, validate, apply).
 - [ ] **`loadout pack`** — create a `.tar.gz` from a bundle directory.
 - [ ] **`loadout apply <git-url>`** — clone to temp, validate, apply. Support branch/tag/ref syntax.
-- [ ] **`loadout init`** — scaffold an empty bundle with commented examples.
-- [ ] **Bundle checksums** — SHA-256 content hash in manifest or state file. Verify on apply. This directly supports token_miser's need to distinguish bundles by content, not just name.
+- [ ] **`loadout init`** — scaffold an empty bundle with commented examples for all config types (CLAUDE.md, settings, rules, skills, MCP, hooks, agents).
+- [ ] **Bundle checksums** — SHA-256 content hash in manifest or state file. Verify on apply. Supports token_miser's need to distinguish bundles by content.
 
-### Phase 3: Comparison & multi-bundle
+### Phase 3: Comparison, composition & plugins
 
-**Goal:** Users can understand differences and compose configurations.
+**Goal:** Users can understand differences, compose configurations, and declare plugin requirements.
 
 - [ ] **`loadout diff <bundleA> <bundleB>`** — content-level diff of two bundles.
 - [ ] **`loadout diff --current <bundle>`** — compare bundle against applied state.
 - [ ] **`loadout list`** — list known/recently-applied bundles from state history.
-- [ ] **Multi-loadout composition** — apply base + overlay bundles with defined merge semantics. State tracks a stack of applied bundles. This unlocks token_miser's future need to test config combinations (e.g., base CLAUDE.md + experimental hooks overlay).
-- [ ] **Conflict detection** — warn when two bundles touch the same file.
+- [ ] **Multi-loadout composition** — apply base + overlay bundles with defined merge semantics. State tracks a stack. Merge rules: files overwrite (last wins), MCP servers merge by name, settings.json deep-merges, skills/agents/rules directories union. This unlocks testing config combinations in token_miser.
+- [ ] **Conflict detection** — warn when two bundles touch the same file or define the same MCP server/skill name.
+- [ ] **Plugin declarations** — `plugins_required` field in manifest.yaml lists plugins by name and version constraint. On apply, warn about plugins that aren't installed. Don't try to install them — that's `claude plugin install`'s job.
+- [ ] **`loadout bootstrap`** — optional command that runs `claude mcp add` for each MCP server and `claude plugin install` for each plugin. Slow, interactive, for new-machine setup (not token_miser).
 
 ### Phase 4: token_miser integration hooks
 
 **Goal:** loadout becomes a first-class primitive for experiment infrastructure.
 
 - [ ] **`loadout hash <bundle>`** — print content-addressable hash of a bundle for cache keys, experiment dedup, and result correlation.
-- [ ] **Experiment metadata in state** — `loadout apply --meta '{"run_id": "...", "variant": "..."}'` stores arbitrary metadata in state file. token_miser can read this back to correlate results with exact configs.
-- [ ] **`loadout apply --read-only`** — symlink or bind-mount mode for faster container injection (no copy). Useful when token_miser runs many experiments against the same bundle.
+- [ ] **Experiment metadata in state** — `loadout apply --meta '{"run_id": "...", "variant": "..."}'` stores arbitrary metadata in state file.
+- [ ] **`loadout apply --read-only`** — symlink or bind-mount mode for faster container injection (no copy).
 - [ ] **Event hooks** — `pre-apply`, `post-apply`, `pre-restore` hooks for experiment orchestrators.
 - [ ] **Bulk validation** — `loadout validate dir-of-bundles/` for validating a full experiment suite.
-- [ ] **`loadout apply --skip-safety`** — combined flag for `--no-backup --yes` that also skips idempotency checks, for known-clean targets. Optimized for the token_miser fast path where `environment.go` creates a fresh temp dir.
+- [ ] **`loadout apply --skip-safety`** — combined flag for `--no-backup --yes` that also skips idempotency checks. Optimized for token_miser's fresh temp dir fast path.
 
 ### Phase 5: Registry & ecosystem
 
@@ -198,7 +217,7 @@ For completeness — these are token_miser issues that don't change the loadout 
 - [ ] **`loadout apply @user/bundle-name`** — registry syntax with GitHub-backed resolution.
 - [ ] **`loadout publish`** — push a bundle to the registry.
 - [ ] **`loadout search`** — discover community bundles.
-- [ ] **Dependency declarations** — bundles can declare they require specific Claude Code versions or MCP servers.
+- [ ] **Dependency declarations** — bundles can declare they require specific Claude Code versions, MCP servers, or plugins.
 - [ ] **CI/CD integration** — GitHub Action and Docker image for loadout in pipelines.
 
 ---
@@ -207,6 +226,8 @@ For completeness — these are token_miser issues that don't change the loadout 
 
 loadout and token_miser are correctly separate tools. loadout manages what you deploy; token_miser measures whether it was worth deploying. The integration point is `loadout apply --target ... --yes` called from `environment.go`.
 
-The loadout MVP is solid and well-tested but has dead code (`backup.py`), missing features the design notes already describe (MCP, init, diff, archives), and critical gaps for its primary programmatic consumer: no `--json`, no `--no-backup`, no content hashing, no exit code contract. These Phase 1 items are the highest priority because they unblock token_miser from being able to meaningfully use loadout without parsing human text or creating useless backups in ephemeral containers.
+The loadout MVP captures 4 of ~15 config types that constitute a Claude Code environment. The biggest gaps are MCP servers (`~/.claude.json` — outside the `~/.claude/` tree, requires merge-on-apply semantics), skills/agents/rules (directory trees that are straightforward to capture but weren't in the original hardcoded list), and plugins (can't be captured/replayed — need a declaration + bootstrap model instead). Claude Code versioning is a real concern but the right strategy is declaration-and-warn, not transformation — loadout should record which version a bundle was captured on and warn on version mismatch, but never try to migrate config formats between versions.
 
-The hardcoded capture paths and absent schema versioning will bite as Claude Code evolves. Phases 2-3 address distribution and comparison. Phase 4 adds the experiment-infrastructure primitives that make loadout genuinely powerful as token_miser's configuration layer. Phase 5 is aspirational — build it if adoption warrants it.
+Phase 1 is the largest phase because it combines the original cleanup/subprocess-citizenship work with the expanded capture surface. MCP is the hardest part — the extract-and-merge strategy (Strategy A in the config surface area doc) is recommended for Phase 1, with the replay-commands approach (Strategy C / `loadout bootstrap`) deferred to Phase 3 for new-machine setup scenarios.
+
+See [docs/config-surface-area.md](config-surface-area.md) for the complete analysis.
