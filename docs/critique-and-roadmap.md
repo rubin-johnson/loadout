@@ -146,7 +146,7 @@ For completeness — these are token_miser issues that don't change the loadout 
 
 See also: [docs/config-surface-area.md](config-surface-area.md) for the full analysis of Claude Code's configuration surface, MCP strategies, skills/plugins handling, and versioning considerations that inform this roadmap.
 
-### Phase 1: Solidify the foundation
+### Phase 1a: Solidify the foundation
 
 **Goal:** Fix the gaps that make the MVP unreliable, make loadout a proper subprocess citizen, and expand capture to cover the real config surface.
 
@@ -163,29 +163,55 @@ See also: [docs/config-surface-area.md](config-surface-area.md) for the full ana
 - [ ] **Document exit code contract** — 0 = success, 1 = validation error, 2 = apply error, etc.
 - [ ] **Add backup pruning** — `--keep N` on apply, or `loadout prune-backups --keep 3`.
 
-**Expand capture surface (the big one):**
+**Expand capture surface:**
 - [ ] **Make DEFAULT_CAPTURES configurable** — stop hardcoding. Allow manifest.yaml to declare additional capture paths.
-- [ ] **Capture `rules/`** — `~/.claude/rules/*.md` with YAML frontmatter. These are increasingly how teams encode conditional coding standards. Treat as a directory like `hooks/`.
-- [ ] **Capture `skills/`** — `~/.claude/skills/<name>/` directory trees. Each skill is a SKILL.md with optional supporting files and scripts. Capture verbatim — don't parse frontmatter.
-- [ ] **Capture `agents/`** — `~/.claude/agents/<name>.md` files. Simple markdown with YAML frontmatter.
-- [ ] **Capture `commands/`** — `~/.claude/commands/<name>.md` (legacy, still supported). Simple markdown files.
-- [ ] **Capture `keybindings.json`** — `~/.claude/keybindings.json`. Optional, minor, but part of a complete environment.
+- [ ] **Capture `rules/`** — `~/.claude/rules/*.md` with YAML frontmatter. Treat as a directory like `hooks/`.
+- [ ] **Capture `skills/`** — `~/.claude/skills/<name>/` directory trees. Capture verbatim — don't parse SKILL.md frontmatter.
+- [ ] **Capture `agents/`** — `~/.claude/agents/<name>.md` files.
+- [ ] **Capture `commands/`** — `~/.claude/commands/<name>.md` (legacy, still supported).
+- [ ] **Capture `keybindings.json`** — `~/.claude/keybindings.json`. Optional.
 - [ ] **Capture `statusline.json`** — `~/.claude/statusline.json`. Optional.
-- [ ] **MCP server capture/apply (Strategy A: extract-and-embed)** — extract `mcpServers` from `~/.claude.json` (user-scope only), strip secrets, store as `mcp/servers.json` in bundle. On apply, merge into target's `~/.claude.json` rather than overwrite. See [config-surface-area.md](config-surface-area.md) for full strategy analysis.
 
 **Claude Code versioning:**
-- [ ] **Add `claude_code_min_version` to manifest.yaml** — minimum Claude Code version the bundle was tested against. Check `claude --version` on apply and warn (not error) if too old.
-- [ ] **Add `claude_code_captured_version` to manifest.yaml** — version running during capture. Pure metadata for debugging and reproducibility.
+- [ ] **Add `claude_code_min_version` to manifest.yaml** — check `claude --version` on apply and warn (not error) if too old.
+- [ ] **Add `claude_code_captured_version` to manifest.yaml** — pure metadata for debugging and reproducibility.
 
-### Phase 2: Distribution & sharing
+### Phase 1b: Launch-flag model (zero-mutation config switching)
 
-**Goal:** Bundles can be shared without manual file copying.
+**Goal:** Support a second application model where bundles are used *in place* via Claude Code's CLI flags, without copying files into `~/.claude/`.
 
+**Context:** Claude Code power users (consultants, multi-client devs) are already using `CLAUDE_CONFIG_DIR`, `--settings`, `--plugin-dir`, and `--mcp-config` to compose configs at launch time without mutating `~/.claude/`. This is arguably a better model for interactive use — no backup/restore, no merge conflicts, instant switching, multiple loadouts can coexist. See [config-surface-area.md § The Launch-Flag Model](config-surface-area.md) for the full analysis.
+
+- [ ] **`loadout launch <bundle>`** — print the `claude` command with `--settings`, `--plugin-dir`, and `--mcp-config` flags pointing at the bundle directory. Bundle stays in place, nothing is copied.
+- [ ] **`loadout alias <bundle> [--name <alias>]`** — generate a shell alias (e.g., `alias claude-frugal='claude --settings ...'`). Optional `--install` to append to `~/.bashrc`/`~/.zshrc`.
+- [ ] **`loadout run <bundle> [-- <claude-args>]`** — execute `claude` directly with the bundle's config flags applied. Passes through extra arguments (e.g., `--print`, `--dangerously-skip-permissions`).
+- [ ] **`loadout launch --config-dir <bundle>`** — use `CLAUDE_CONFIG_DIR` mode for full isolation (bundle directory becomes the entire `~/.claude/` equivalent). Requires the bundle to be structured as a complete config directory.
+- [ ] **Make bundles dual-mode** — ensure the bundle directory structure is valid for both `loadout apply` (copy into `~/.claude/`) and `loadout launch` (use in place via flags). `manifest.yaml` is loadout metadata; Claude Code ignores it. Everything else is in the right place for either model.
+- [ ] **MCP config as a standalone file** — when a bundle has `mcp/servers.json`, `loadout launch` passes it via `--mcp-config`. No merge logic needed for this model. (Note: as of v2.1.74, `--settings` no longer merges MCP servers — `--mcp-config` is required separately.)
+- [ ] **Plugin-dir mode** — if the bundle contains `.claude-plugin/plugin.json`, it's a valid plugin directory. `loadout launch` passes it via `--plugin-dir`. This supports the "agent team as plugin" pattern (see config-surface-area.md for the PA team example).
+
+**Why this is Phase 1b (not later):**
+- Lower complexity than MCP merge logic (generate strings, don't mutate filesystem)
+- Solves MCP for interactive users without any merge strategy
+- Directly addresses the multi-client consultant use case
+- Makes loadout immediately useful to a new audience before the harder file-copy improvements
+
+### Phase 2: MCP merge & distribution
+
+**Goal:** Full MCP support for the file-copy model (token_miser, CI/CD), plus bundle sharing.
+
+**MCP for file-copy model (Strategy A: extract-and-embed):**
+- [ ] **MCP server capture** — extract `mcpServers` from `~/.claude.json` (user-scope only), strip secrets to `${VAR}` placeholders, store as `mcp/servers.json`.
+- [ ] **MCP server apply with merge** — on `loadout apply`, merge bundle's MCP servers into target's `~/.claude.json`. Bundle server wins on name conflict. Existing servers not in bundle are preserved. `--replace` flag for destructive mode.
+- [ ] **MCP server restore** — undo the merge: remove added servers, restore overwritten ones.
+- [ ] **MCP dependency warnings** — on capture, warn about server binaries that may not be installed on other machines.
+
+**Distribution:**
 - [ ] **`loadout apply ./bundle.tar.gz`** — support archived bundles (extract to temp, validate, apply).
 - [ ] **`loadout pack`** — create a `.tar.gz` from a bundle directory.
 - [ ] **`loadout apply <git-url>`** — clone to temp, validate, apply. Support branch/tag/ref syntax.
-- [ ] **`loadout init`** — scaffold an empty bundle with commented examples for all config types (CLAUDE.md, settings, rules, skills, MCP, hooks, agents).
-- [ ] **Bundle checksums** — SHA-256 content hash in manifest or state file. Verify on apply. Supports token_miser's need to distinguish bundles by content.
+- [ ] **`loadout init`** — scaffold an empty bundle with commented examples for all config types.
+- [ ] **Bundle checksums** — SHA-256 content hash in manifest or state file. Verify on apply.
 
 ### Phase 3: Comparison, composition & plugins
 
@@ -196,8 +222,8 @@ See also: [docs/config-surface-area.md](config-surface-area.md) for the full ana
 - [ ] **`loadout list`** — list known/recently-applied bundles from state history.
 - [ ] **Multi-loadout composition** — apply base + overlay bundles with defined merge semantics. State tracks a stack. Merge rules: files overwrite (last wins), MCP servers merge by name, settings.json deep-merges, skills/agents/rules directories union. This unlocks testing config combinations in token_miser.
 - [ ] **Conflict detection** — warn when two bundles touch the same file or define the same MCP server/skill name.
-- [ ] **Plugin declarations** — `plugins_required` field in manifest.yaml lists plugins by name and version constraint. On apply, warn about plugins that aren't installed. Don't try to install them — that's `claude plugin install`'s job.
-- [ ] **`loadout bootstrap`** — optional command that runs `claude mcp add` for each MCP server and `claude plugin install` for each plugin. Slow, interactive, for new-machine setup (not token_miser).
+- [ ] **Plugin declarations** — `plugins_required` field in manifest.yaml lists plugins by name and version constraint. On apply, warn about plugins that aren't installed.
+- [ ] **`loadout bootstrap`** — optional command that runs `claude mcp add` for each MCP server and `claude plugin install` for each plugin. Slow, interactive, for new-machine setup.
 
 ### Phase 4: token_miser integration hooks
 
@@ -226,8 +252,13 @@ See also: [docs/config-surface-area.md](config-surface-area.md) for the full ana
 
 loadout and token_miser are correctly separate tools. loadout manages what you deploy; token_miser measures whether it was worth deploying. The integration point is `loadout apply --target ... --yes` called from `environment.go`.
 
-The loadout MVP captures 4 of ~15 config types that constitute a Claude Code environment. The biggest gaps are MCP servers (`~/.claude.json` — outside the `~/.claude/` tree, requires merge-on-apply semantics), skills/agents/rules (directory trees that are straightforward to capture but weren't in the original hardcoded list), and plugins (can't be captured/replayed — need a declaration + bootstrap model instead). Claude Code versioning is a real concern but the right strategy is declaration-and-warn, not transformation — loadout should record which version a bundle was captured on and warn on version mismatch, but never try to migrate config formats between versions.
+loadout has **two application models**, both supported by a single bundle format:
 
-Phase 1 is the largest phase because it combines the original cleanup/subprocess-citizenship work with the expanded capture surface. MCP is the hardest part — the extract-and-merge strategy (Strategy A in the config surface area doc) is recommended for Phase 1, with the replay-commands approach (Strategy C / `loadout bootstrap`) deferred to Phase 3 for new-machine setup scenarios.
+1. **File-copy model** (`loadout apply`) — copies bundle contents into `~/.claude/`. Requires backup/restore, merge logic for MCP. Used by token_miser, CI/CD, container injection.
+2. **Launch-flag model** (`loadout launch/alias/run`) — generates `claude` commands with `--settings`, `--plugin-dir`, `--mcp-config` flags pointing at the bundle in place. No mutation, no backup, instant switching. Used by developers switching between client configs or context profiles.
 
-See [docs/config-surface-area.md](config-surface-area.md) for the complete analysis.
+The MVP captures 4 of ~15 config types. Phase 1a expands capture to rules, skills, agents, commands, keybindings, and statusline. Phase 1b adds the launch-flag model — lower complexity and higher immediate value than MCP merge logic. Phase 2 adds MCP merge for the file-copy model and bundle distribution. Phase 3 adds composition and plugin declarations. Phase 4 makes loadout a first-class experiment primitive. Phase 5 is aspirational ecosystem tooling.
+
+The biggest architectural insight: **MCP is hard for Model A (file copy) but trivial for Model B (launch flags)**. Most interactive users should use Model B. Model A's MCP merge complexity is only needed for token_miser and CI/CD, which are automated contexts where the extra engineering is justified.
+
+See [docs/config-surface-area.md](config-surface-area.md) for the complete analysis including MCP strategies, the launch-flag model, skills/plugins handling, and Claude Code versioning.

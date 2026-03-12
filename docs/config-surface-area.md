@@ -430,3 +430,160 @@ plugins_required:            # NEW: declared but not installed by loadout
     version: ">=1.0.0"
     install: "claude plugin install some-plugin"
 ```
+
+---
+
+## The Launch-Flag Model: An Alternative to File Copying
+
+### Discovery: Claude Code has CLI flags for composable config
+
+A conversation among Claude Code power users (consultants, multi-client developers) revealed that Claude Code supports several CLI flags and environment variables that enable config-switching *without touching `~/.claude/` at all*:
+
+| Flag / Env var | What it does | Since |
+|---------------|-------------|-------|
+| `CLAUDE_CONFIG_DIR` | Redirect all of `~/.claude/` to a different directory | Early versions |
+| `--settings <path>` | Load settings from a specific JSON file instead of the default | Pre-2.1 |
+| `--plugin-dir <path>` | Load plugins/skills/agents from a specific directory | Pre-2.1 |
+| `--mcp-config <path>` | Load MCP server config from a specific file | v2.1.74+ (previously `--settings` merged MCP, now it doesn't) |
+
+### Real-world usage patterns
+
+**Pattern 1: Per-client config directories (Mark Lambert)**
+Consultant with multiple clients, each requiring their own Claude account/config:
+```bash
+# Directory structure
+~/.claude-clients/
+  acme-corp/          # full ~/.claude equivalent for Acme
+  globex/             # full ~/.claude equivalent for Globex
+
+# Shell aliases
+alias cc-acme='CLAUDE_CONFIG_DIR=~/.claude-clients/acme-corp claude'
+alias cc-globex='CLAUDE_CONFIG_DIR=~/.claude-clients/globex claude'
+```
+Symlinks shared skills/CLAUDE.md from personal `~/.claude/` into client directories.
+
+**Pattern 2: Composable launch flags (Mike Hanney)**
+Multiple "teams" of agents/skills packaged as plugin directories, composed via flags:
+```bash
+export CLAUDE_DEV="$HOME/dev/claude-plugins"
+export CLAUDE_LAUNCH_CONFIGS="$CLAUDE_DEV/launch-configs"
+
+# Each alias composes a settings file + a plugin directory
+alias csa="claude --plugin-dir \"$CLAUDE_DEV/claude-sa-team\" --settings \"$CLAUDE_LAUNCH_CONFIGS/csa.json\" --mcp-config \"$CLAUDE_LAUNCH_CONFIGS/csa.json\""
+alias cpa="claude --plugin-dir \"$CLAUDE_DEV/claude-pa-team\" --settings \"$CLAUDE_LAUNCH_CONFIGS/personal.json\" --mcp-config \"$CLAUDE_LAUNCH_CONFIGS/personal.json\""
+alias cdev="claude --settings \"$CLAUDE_LAUNCH_CONFIGS/developer.json\" --mcp-config \"$CLAUDE_LAUNCH_CONFIGS/developer.json\""
+```
+
+Plugin directory is a full agent team:
+```
+claude-pa-team/
+  .claude-plugin/plugin.json
+  CLAUDE.md
+  agents/
+    pa-orchestrator.md
+    pa-financial-advisor.md
+    pa-life-coach.md
+    pa-strategist.md
+    pa-travel-agent.md
+    pa-wellness-coach.md
+  commands/
+    pa.md, coach.md, finance.md, goals.md, ...
+  skills/
+    clarification-protocol/
+    decision-framework/
+    financial-planning/
+    habit-tracker/
+    life-planning/
+    travel-planning/
+    weekly-planning/
+    ...
+```
+
+### What this means for loadout
+
+This reveals **two fundamentally different models** for config-switching:
+
+**Model A: File-copy (current loadout model)**
+- Copy files into `~/.claude/`
+- Requires backup/restore
+- Mutates shared state
+- Only one loadout active at a time
+- Works everywhere (including token_miser's temp HOME dirs)
+
+**Model B: Launch-flag (zero-mutation model)**
+- Bundle is a directory that stays where it is
+- `loadout` generates a launch command or shell alias
+- No backup needed — `~/.claude/` is untouched
+- Multiple loadouts can coexist (different aliases)
+- Switching is instant (use a different alias)
+- **Doesn't work for token_miser** (needs actual files in a temp HOME)
+
+### The right answer: support both
+
+loadout should support both models because they serve different users:
+
+**`loadout apply <bundle>`** (Model A — existing behavior)
+- Copies files into target directory
+- Creates backup, supports restore
+- For: token_miser, CI/CD, container injection, anyone who needs actual files on disk
+
+**`loadout launch <bundle>` or `loadout alias <bundle>`** (Model B — new)
+- Generates a `claude` launch command with the right `--settings`, `--plugin-dir`, `--mcp-config` flags
+- Or generates a shell alias for `.bashrc`/`.zshrc`
+- Or sets `CLAUDE_CONFIG_DIR` to point at the bundle directory
+- For: developers switching between client configs, team contexts, or personal vs work modes
+- No backup, no restore, no mutation, no conflict
+
+```bash
+# Model A (existing)
+$ loadout apply frugal-v2
+Applied frugal-v2 to ~/.claude/. Backup at ~/.claude/.loadout-backups/2024-01-15T10:30:00/
+
+# Model B (new) - generate alias
+$ loadout alias frugal-v2
+alias claude-frugal='claude --settings "/path/to/frugal-v2/settings.json" --plugin-dir "/path/to/frugal-v2" --mcp-config "/path/to/frugal-v2/mcp-config.json"'
+
+# Model B - generate launch command
+$ loadout launch frugal-v2
+claude --settings "/path/to/frugal-v2/settings.json" --plugin-dir "/path/to/frugal-v2" --mcp-config "/path/to/frugal-v2/mcp-config.json"
+
+# Model B - run directly
+$ loadout run frugal-v2 -- --print "fix the bug in auth.py"
+# executes: claude --settings ... --plugin-dir ... --mcp-config ... --print "fix the bug in auth.py"
+
+# Model B - CLAUDE_CONFIG_DIR mode (full isolation)
+$ loadout launch --config-dir frugal-v2
+CLAUDE_CONFIG_DIR=/path/to/frugal-v2 claude
+
+# Model B - add to shell profile
+$ loadout alias frugal-v2 --install
+# Appends alias to ~/.bashrc or ~/.zshrc
+```
+
+### Bundle format implications
+
+For Model B to work, the bundle directory must be directly usable as a `--plugin-dir` or `CLAUDE_CONFIG_DIR` target. This means:
+
+1. **Plugin-dir mode:** Bundle needs `.claude-plugin/plugin.json` to be a valid plugin directory. Skills go in `skills/`, agents in `agents/`, etc. Settings and MCP are passed via separate `--settings` and `--mcp-config` flags pointing at files in the bundle.
+
+2. **Config-dir mode:** Bundle needs to look like `~/.claude/` — settings.json at root, skills/ dir, etc. This is already how loadout bundles are structured (minus the `manifest.yaml` which Claude Code ignores).
+
+3. **Hybrid:** A bundle could be valid for *both* models. `manifest.yaml` is loadout metadata (ignored by Claude Code). The rest of the files are in the right places for either copy-into-`~/.claude/` or use-as-`CLAUDE_CONFIG_DIR`.
+
+### Impact on MCP strategy
+
+The launch-flag model **completely sidesteps the MCP merge problem** for Model B users:
+- `--mcp-config <path>` points Claude Code at the bundle's MCP config file directly
+- No need to merge into `~/.claude.json`
+- No risk of overwriting existing MCP servers
+- Bundle's MCP config is self-contained
+
+This is a strong argument for implementing Model B early — it solves MCP without any of the merge complexity that Strategy A requires.
+
+For Model A (token_miser), the merge strategy is still needed because token_miser needs actual files in a temp HOME directory.
+
+### Impact on the roadmap
+
+Model B (`loadout launch/alias/run`) should be **Phase 1b** — right after the foundation cleanup but before MCP merge logic. It's lower complexity (generate a string, don't mutate the filesystem) and higher value (solves the multi-client use case, sidesteps MCP merge for interactive users).
+
+The full MCP merge strategy (Strategy A) gets pushed to Phase 2, needed only for token_miser and CI/CD. Most interactive users will use Model B instead.
