@@ -35,7 +35,14 @@ func makeValidBundle(t *testing.T) string {
 	dir := t.TempDir()
 	
 	// Create manifest.yaml
-	manifestData := "name: test\nversion: 1.0.0\nauthor: test author\ndescription: test description\ntargets:\n  - path: test.txt\n    dest: test.txt\n"
+	manifestData := `name: test-bundle
+version: 1.0.0
+author: test-author
+description: test description
+targets:
+  - path: test.txt
+    dest: test.txt
+`
 	os.WriteFile(filepath.Join(dir, "manifest.yaml"), []byte(manifestData), 0644)
 	
 	// Create the target file
