@@ -47,6 +47,7 @@ func TestAtomicApplyLandsFiles(t *testing.T) {
 
 // makeValidBundle creates a temporary bundle directory with test files
 func makeValidBundle(t *testing.T) string {
+	t.Helper()
 	bundleDir := t.TempDir()
 
 	// Create a manifest file
@@ -73,4 +74,36 @@ func makeValidBundle(t *testing.T) string {
 	}
 
 	return bundleDir
+}
+
+func TestFilesLandAtCorrectPaths(t *testing.T) {
+	t.Skip("pending STORY-009")
+}
+
+func TestUnrelatedFilesUntouched(t *testing.T) {
+	t.Skip("pending STORY-009")
+}
+
+func TestTildeDestResolvesToTarget(t *testing.T) {
+	t.Skip("pending STORY-009")
+}
+
+func TestAtomicOnMoveFailure(t *testing.T) {
+	t.Skip("pending STORY-009")
+}
+
+func TestApplyWritesState(t *testing.T) {
+	t.Skip("pending STORY-010")
+}
+
+func TestApplyCreatesBackup(t *testing.T) {
+	t.Skip("pending STORY-010")
+}
+
+func TestApplyDryRunNoChanges(t *testing.T) {
+	t.Skip("pending STORY-010")
+}
+
+func TestInvalidBundleAborts(t *testing.T) {
+	t.Skip("pending STORY-010")
 }
