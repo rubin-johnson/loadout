@@ -5,51 +5,58 @@ import (
 	"os"
 	"path/filepath"
 
-	"bundle-tool/internal/manifest"
+	"github.com/coderabbitai/ai-pr-reviewer/internal/manifest"
 )
 
 // ValidateBundle validates a bundle directory and returns all validation errors.
-// Returns empty slice if bundle is valid.
+// Returns empty slice if valid.
 func ValidateBundle(bundleDir string) []string {
 	var errors []string
 
 	// Fatal early-return conditions
 	if bundleDir == "" {
-		errors = append(errors, "bundle directory path cannot be empty")
-		return errors
+		return []string{"bundle directory path cannot be empty"}
 	}
 
 	// Check if path exists
-	if _, err := os.Stat(bundleDir); os.IsNotExist(err) {
-		errors = append(errors, fmt.Sprintf("bundle directory does not exist: %s", bundleDir))
-		return errors
+	info, err := os.Stat(bundleDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return []string{fmt.Sprintf("bundle directory does not exist: %s", bundleDir)}
+		}
+		return []string{fmt.Sprintf("error accessing bundle directory: %v", err)}
 	}
 
 	// Check if it's a directory
-	if info, err := os.Stat(bundleDir); err == nil && !info.IsDir() {
-		errors = append(errors, fmt.Sprintf("path is not a directory: %s", bundleDir))
-		return errors
+	if !info.IsDir() {
+		return []string{fmt.Sprintf("path is not a directory: %s", bundleDir)}
 	}
 
 	// Check if manifest.yaml exists
 	manifestPath := filepath.Join(bundleDir, "manifest.yaml")
-	if _, err := os.Stat(manifestPath); os.IsNotExist(err) {
-		errors = append(errors, "manifest.yaml not found in bundle directory")
-		return errors
+	if _, err := os.Stat(manifestPath); err != nil {
+		if os.IsNotExist(err) {
+			return []string{"manifest.yaml not found in bundle directory"}
+		}
+		return []string{fmt.Sprintf("error accessing manifest.yaml: %v", err)}
 	}
 
-	// Delegate to manifest.Load for YAML and field validation
-	m, err := manifest.Load(manifestPath)
+	// Delegate YAML and field validation to manifest.Load
+	m, err := manifest.Load(bundleDir)
 	if err != nil {
 		errors = append(errors, err.Error())
-		return errors
+		return errors // If manifest loading fails, no point checking targets
 	}
 
 	// Check each declared target path exists on disk
 	for _, target := range m.Targets {
 		targetPath := filepath.Join(bundleDir, target.Path)
-		if _, err := os.Stat(targetPath); os.IsNotExist(err) {
-			errors = append(errors, fmt.Sprintf("target file does not exist: %s", target.Path))
+		if _, err := os.Stat(targetPath); err != nil {
+			if os.IsNotExist(err) {
+				errors = append(errors, fmt.Sprintf("target file does not exist: %s", target.Path))
+			} else {
+				errors = append(errors, fmt.Sprintf("error accessing target file %s: %v", target.Path, err))
+			}
 		}
 	}
 
