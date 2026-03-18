@@ -94,6 +94,20 @@ func AtomicApply(bundleDir, targetDir string, m *manifest.Manifest) error {
 	return nil
 }
 
+// resolveDest resolves a destination path relative to targetDir
+func resolveDest(dest, targetDir string) (string, bool) {
+	if dest == "" {
+		return "", false
+	}
+	
+	// If dest is absolute, use as-is; otherwise make it relative to targetDir
+	if filepath.IsAbs(dest) {
+		return dest, true
+	}
+	
+	return filepath.Join(targetDir, dest), true
+}
+
 // copyFile copies a file from src to dst
 func copyFile(src, dst string) error {
 	srcFile, err := os.Open(src)
