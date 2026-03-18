@@ -5,15 +5,15 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/wesen/loadout/internal/backup"
-	"github.com/wesen/loadout/internal/state"
+	"github.com/rubin-johnson/loadout/internal/backup"
+	"github.com/rubin-johnson/loadout/internal/state"
 )
 
 func TestRestoreUsesPlacedPaths(t *testing.T) {
 	target := t.TempDir()
 	os.WriteFile(filepath.Join(target, "placed.txt"), []byte("x"), 0644)
 	os.WriteFile(filepath.Join(target, "unrelated.txt"), []byte("y"), 0644)
-	bkpName, _ := backup.Create(target)
+	bkpName, _ := backup.CreateBackup(target)
 	state.Write(target, &state.State{
 		Backup:      bkpName,
 		PlacedPaths: []string{filepath.Join(target, "placed.txt")},
@@ -33,7 +33,7 @@ func TestRestoreNoBackupsError(t *testing.T) {
 
 func TestRestoreClearsState(t *testing.T) {
 	target := t.TempDir()
-	bkpName, _ := backup.Create(target)
+	bkpName, _ := backup.CreateBackup(target)
 	state.Write(target, &state.State{Backup: bkpName})
 	RestoreBundle(target, "")
 	s, _ := state.Read(target)

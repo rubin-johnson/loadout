@@ -3,9 +3,8 @@ package status
 import (
 	"fmt"
 	"io"
-	"path/filepath"
 
-	"github.com/ryanwclark1/project-loadout/internal/state"
+	"github.com/rubin-johnson/loadout/internal/state"
 )
 
 // ShowStatus prints the active loadout summary to the provided writer.
@@ -13,7 +12,7 @@ import (
 func ShowStatus(targetDir string, w io.Writer) error {
 	// Try to read the state from the target directory
 	currentState, err := state.Read(targetDir)
-	if err != nil {
+	if err != nil || currentState == nil {
 		// No state file or error reading it - no loadout applied
 		fmt.Fprintf(w, "No loadout applied\n")
 		return nil
@@ -28,8 +27,8 @@ func ShowStatus(targetDir string, w io.Writer) error {
 	if currentState.BundlePath != "" {
 		fmt.Fprintf(w, "Bundle path: %s\n", currentState.BundlePath)
 	}
-	if currentState.BackupName != "" {
-		fmt.Fprintf(w, "Backup name: %s\n", currentState.BackupName)
+	if currentState.Backup != "" {
+		fmt.Fprintf(w, "Backup name: %s\n", currentState.Backup)
 	}
 
 	return nil

@@ -5,8 +5,8 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"github.com/loadout/internal/apply"
-	"github.com/loadout/internal/paths"
+	"github.com/rubin-johnson/loadout/internal/apply"
+	"github.com/rubin-johnson/loadout/internal/paths"
 )
 
 var (
@@ -21,7 +21,11 @@ var applyCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		bundlePath := args[0]
 		
-		targetDir := paths.GetTargetRoot(target)
+		targetDir, err := paths.GetTargetRoot(target)
+		if err != nil {
+			fmt.Fprintf(cmd.ErrOrStderr(), "error: %v\n", err)
+			os.Exit(1)
+		}
 		if err := apply.ApplyBundle(bundlePath, targetDir, dryRun); err != nil {
 			fmt.Fprintf(cmd.ErrOrStderr(), "Apply failed: %v\n", err)
 			os.Exit(1)

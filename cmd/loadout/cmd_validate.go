@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"github.com/loadout/internal/validate"
+	"github.com/rubin-johnson/loadout/internal/validate"
 )
 
 var validateCmd = &cobra.Command{

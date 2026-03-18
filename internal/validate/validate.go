@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/coderabbitai/ai-pr-reviewer/internal/manifest"
+	"github.com/rubin-johnson/loadout/internal/manifest"
 )
 
 // ValidateBundle validates a bundle directory and returns all validation errors.

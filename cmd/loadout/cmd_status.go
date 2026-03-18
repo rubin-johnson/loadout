@@ -5,8 +5,8 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"github.com/loadout/internal/status"
-	"github.com/loadout/internal/paths"
+	"github.com/rubin-johnson/loadout/internal/status"
+	"github.com/rubin-johnson/loadout/internal/paths"
 )
 
 var statusCmd = &cobra.Command{
@@ -15,8 +15,12 @@ var statusCmd = &cobra.Command{
 	Long:  "Show the status of the current configuration in the target directory",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		targetDir := paths.GetTargetRoot(target)
-		if err := status.ShowStatus(targetDir); err != nil {
+		targetDir, err := paths.GetTargetRoot(target)
+		if err != nil {
+			fmt.Fprintf(cmd.ErrOrStderr(), "error: %v\n", err)
+			os.Exit(1)
+		}
+		if err := status.ShowStatus(targetDir, cmd.OutOrStdout()); err != nil {
 			fmt.Fprintf(cmd.ErrOrStderr(), "Status check failed: %v\n", err)
 			os.Exit(1)
 		}

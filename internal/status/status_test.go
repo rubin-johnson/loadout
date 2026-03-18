@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ryanwclark1/project-loadout/internal/state"
+	"github.com/rubin-johnson/loadout/internal/state"
 )
 
 func TestShowStatusNoState(t *testing.T) {

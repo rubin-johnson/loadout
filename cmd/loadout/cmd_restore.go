@@ -5,8 +5,8 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"github.com/loadout/internal/restore"
-	"github.com/loadout/internal/paths"
+	"github.com/rubin-johnson/loadout/internal/restore"
+	"github.com/rubin-johnson/loadout/internal/paths"
 )
 
 var (
@@ -19,7 +19,11 @@ var restoreCmd = &cobra.Command{
 	Long:  "Restore configuration from a backup to the target directory",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		targetDir := paths.GetTargetRoot(target)
+		targetDir, err := paths.GetTargetRoot(target)
+		if err != nil {
+			fmt.Fprintf(cmd.ErrOrStderr(), "error: %v\n", err)
+			os.Exit(1)
+		}
 		if err := restore.RestoreBundle(targetDir, backupName); err != nil {
 			fmt.Fprintf(cmd.ErrOrStderr(), "Restore failed: %v\n", err)
 			os.Exit(1)

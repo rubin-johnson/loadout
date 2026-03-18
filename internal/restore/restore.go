@@ -4,10 +4,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
-	"github.com/wesen/loadout/internal/backup"
-	"github.com/wesen/loadout/internal/state"
+	"github.com/rubin-johnson/loadout/internal/backup"
+	"github.com/rubin-johnson/loadout/internal/state"
 )
 
 // RestoreBundle removes placed files and restores a backup
@@ -135,7 +134,7 @@ func RestoreBundle(targetDir, backupName string) error {
 	}
 
 	// Clear state after successful restore
-	if err := state.Delete(targetDir); err != nil {
+	if err := state.Clear(targetDir); err != nil {
 		// State clear failure is not fatal for restore operation
 		// but we should still report it
 		return fmt.Errorf("restore completed but failed to clear state: %w", err)
