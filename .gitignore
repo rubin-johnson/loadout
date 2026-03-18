@@ -1,26 +1,5 @@
-# Python
-__pycache__/
-*.py[cod]
-.venv/
-*.egg-info/
-dist/
-build/
-
-# Runtime state
-docs/plans/plan_state.json
-docs/plans/conflicts/
-
-# Claude Code internal dirs
-.claude/
-.claire/
-
-# Test artifacts
-.pytest_cache/
-.coverage
-htmlcov/
-
-# OS
+bin/
+*.test
+*.out
+vendor/
 .DS_Store
-
-# ralphael working directory
-.ralphael/
