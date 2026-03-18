@@ -30,18 +30,16 @@ func TestValidateValid(t *testing.T) {
 	}
 }
 
-// Helper function to create a valid bundle for testing
+// makeValidBundle creates a valid bundle for testing
 func makeValidBundle(t *testing.T) string {
 	dir := t.TempDir()
-	data := "name: testapp\nversion: 1.0.0\nauthor: testauthor\ndescription: test description\ntargets:\n  - path: test.txt\n    dest: test.txt\n"
-	err := os.WriteFile(filepath.Join(dir, "manifest.yaml"), []byte(data), 0644)
-	if err != nil {
-		t.Fatal(err)
-	}
+	
+	// Create manifest.yaml
+	manifestData := "name: test\nversion: 1.0.0\nauthor: test author\ndescription: test description\ntargets:\n  - path: test.txt\n    dest: test.txt\n"
+	os.WriteFile(filepath.Join(dir, "manifest.yaml"), []byte(manifestData), 0644)
+	
 	// Create the target file
-	err = os.WriteFile(filepath.Join(dir, "test.txt"), []byte("test content"), 0644)
-	if err != nil {
-		t.Fatal(err)
-	}
+	os.WriteFile(filepath.Join(dir, "test.txt"), []byte("test content"), 0644)
+	
 	return dir
 }
