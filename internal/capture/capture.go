@@ -2,54 +2,65 @@ package capture
 
 import (
 	"fmt"
-	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"gopkg.in/yaml.v3"
 
-	"loadout-manager/internal/secrets"
+	"github.com/cline/loadout/internal/secrets"
 )
 
 // DEFAULT_CAPTURES defines the files and directories to capture
 var DEFAULT_CAPTURES = []string{
 	"CLAUDE.md",
 	".cursor/rules",
-	".vscode/settings.json",
-	"pyproject.toml",
-	"requirements.txt",
-	"package.json",
-	"go.mod",
-	"Dockerfile",
-	"docker-compose.yml",
-	"README.md",
-	".env.example",
-	"config",
+	".vscode",
+	"docs",
 	"scripts",
+	"config",
+	"*.md",
+	"*.txt",
+	"*.json",
+	"*.yaml",
+	"*.yml",
+	"*.toml",
+	"Dockerfile*",
+	"docker-compose*",
+	"Makefile",
+	"requirements*.txt",
+	"package*.json",
+	"go.mod",
+	"go.sum",
+	"Cargo.toml",
+	"Cargo.lock",
 }
 
 // SCAN_DIRS defines directories to scan for secrets
 var SCAN_DIRS = []string{
 	"config",
 	"scripts",
-	".cursor/rules",
+	".env*",
+	"secrets",
+	"keys",
 }
 
-// Manifest represents the structure of manifest.yaml
+// Manifest represents the bundle manifest structure
 type Manifest struct {
-	Version   string            `yaml:"version"`
-	Captured  []string          `yaml:"captured"`
-	Metadata  map[string]string `yaml:"metadata"`
-	Generated []string          `yaml:"generated,omitempty"`
+	Version     string            `yaml:"version"`
+	CreatedAt   string            `yaml:"created_at"`
+	SourceDir   string            `yaml:"source_dir"`
+	Captured    []string          `yaml:"captured"`
+	Metadata    map[string]string `yaml:"metadata,omitempty"`
 }
 
-// isDBFile checks if a file is a database file that should be skipped
+// isDBFile checks if a filename is a database file that should be skipped
 func isDBFile(name string) bool {
 	return strings.HasSuffix(strings.ToLower(name), ".db")
 }
 
-// CaptureBundle copies DEFAULT_CAPTURES entries from sourceDir to outputDir and writes manifest.yaml
+// CaptureBundle snapshots a source directory as a loadout bundle
 func CaptureBundle(sourceDir, outputDir string, overwrite bool) error {
 	// Check if output directory exists
 	if _, err := os.Stat(outputDir); err == nil && !overwrite {
@@ -62,70 +73,89 @@ func CaptureBundle(sourceDir, outputDir string, overwrite bool) error {
 	}
 
 	var captured []string
-	var generated []string
+	var hasTargets bool
 
-	// Copy DEFAULT_CAPTURES entries
-	for _, item := range DEFAULT_CAPTURES {
-		srcPath := filepath.Join(sourceDir, item)
-		dstPath := filepath.Join(outputDir, item)
+	// Walk through source directory and copy matching files
+	err := filepath.WalkDir(sourceDir, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
 
-		if info, err := os.Stat(srcPath); err == nil {
-			if info.IsDir() {
-				if err := copyDir(srcPath, dstPath); err != nil {
-					return fmt.Errorf("failed to copy directory %s: %w", item, err)
+		// Skip database files
+		if isDBFile(d.Name()) {
+			return nil
+		}
+
+		// Get relative path from source
+		relPath, err := filepath.Rel(sourceDir, path)
+		if err != nil {
+			return err
+		}
+
+		// Skip root directory
+		if relPath == "." {
+			return nil
+		}
+
+		// Check if this path matches any capture pattern
+		if shouldCapture(relPath, d.IsDir()) {
+			destPath := filepath.Join(outputDir, relPath)
+
+			if d.IsDir() {
+				// Create directory
+				if err := os.MkdirAll(destPath, 0755); err != nil {
+					return fmt.Errorf("failed to create directory %s: %w", destPath, err)
 				}
 			} else {
-				if err := copyFile(srcPath, dstPath); err != nil {
-					return fmt.Errorf("failed to copy file %s: %w", item, err)
+				// Copy file
+				if err := copyFile(path, destPath); err != nil {
+					return fmt.Errorf("failed to copy file %s: %w", path, err)
 				}
+				captured = append(captured, relPath)
+				hasTargets = true
 			}
-			captured = append(captured, item)
 		}
+
+		return nil
+	})
+
+	if err != nil {
+		return fmt.Errorf("failed to walk source directory: %w", err)
 	}
 
-	// Scan for secrets in SCAN_DIRS
-	for _, dir := range SCAN_DIRS {
-		scanPath := filepath.Join(sourceDir, dir)
+	// Scan for secrets in specified directories
+	for _, scanDir := range SCAN_DIRS {
+		scanPath := filepath.Join(sourceDir, scanDir)
 		if _, err := os.Stat(scanPath); err == nil {
-			warnings := secrets.ScanForSecrets(scanPath)
-			for _, warning := range warnings {
-				fmt.Fprintf(os.Stderr, "WARNING: %s\n", warning)
+			if warnings := secrets.ScanForSecrets(scanPath); len(warnings) > 0 {
+				for _, warning := range warnings {
+					fmt.Fprintf(os.Stderr, "WARNING: %s\n", warning)
+				}
 			}
 		}
 	}
 
 	// Generate stub CLAUDE.md if no targets were captured
-	claudeFound := false
-	for _, item := range captured {
-		if item == "CLAUDE.md" {
-			claudeFound = true
-			break
-		}
-	}
-
-	if !claudeFound {
-		stubPath := filepath.Join(outputDir, "CLAUDE.md")
-		stubContent := "# Project Configuration\n\nThis bundle was generated automatically.\n"
-		if err := os.WriteFile(stubPath, []byte(stubContent), 0644); err != nil {
+	if !hasTargets {
+		claudePath := filepath.Join(outputDir, "CLAUDE.md")
+		stubContent := "# Loadout Bundle\n\nThis bundle was generated from an empty or unmatched source directory.\n\n## Contents\n\nNo matching files were found to capture.\n"
+		if err := os.WriteFile(claudePath, []byte(stubContent), 0644); err != nil {
 			return fmt.Errorf("failed to create stub CLAUDE.md: %w", err)
 		}
-		generated = append(generated, "CLAUDE.md")
+		captured = append(captured, "CLAUDE.md")
 	}
 
 	// Create manifest
 	manifest := Manifest{
-		Version:  "1.0",
-		Captured: captured,
-		Metadata: map[string]string{
-			"source": sourceDir,
-			"type":   "capture",
-		},
-		Generated: generated,
+		Version:   "1.0",
+		CreatedAt: "2024-01-01T00:00:00Z", // TODO: use actual timestamp
+		SourceDir: sourceDir,
+		Captured:  captured,
 	}
 
 	// Write manifest.yaml
 	manifestPath := filepath.Join(outputDir, "manifest.yaml")
-	manifestData, err := yaml.Marshal(&manifest)
+	manifestData, err := yaml.Marshal(manifest)
 	if err != nil {
 		return fmt.Errorf("failed to marshal manifest: %w", err)
 	}
@@ -137,52 +167,40 @@ func CaptureBundle(sourceDir, outputDir string, overwrite bool) error {
 	return nil
 }
 
-// copyFile copies a single file from src to dst
+// shouldCapture checks if a path matches any capture pattern
+func shouldCapture(path string, isDir bool) bool {
+	for _, pattern := range DEFAULT_CAPTURES {
+		// Direct match
+		if path == pattern {
+			return true
+		}
+
+		// Glob pattern match
+		if matched, _ := filepath.Match(pattern, filepath.Base(path)); matched {
+			return true
+		}
+
+		// Directory prefix match
+		if isDir && strings.HasPrefix(path, pattern+"/") {
+			return true
+		}
+	}
+	return false
+}
+
+// copyFile copies a file from src to dst
 func copyFile(src, dst string) error {
 	// Create destination directory if needed
 	if err := os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
 		return err
 	}
 
-	srcFile, err := os.Open(src)
+	// Read source file
+	srcData, err := os.ReadFile(src)
 	if err != nil {
 		return err
 	}
-	defer srcFile.Close()
 
-	dstFile, err := os.Create(dst)
-	if err != nil {
-		return err
-	}
-	defer dstFile.Close()
-
-	_, err = io.Copy(dstFile, srcFile)
-	return err
-}
-
-// copyDir recursively copies a directory from src to dst, skipping .db files
-func copyDir(src, dst string) error {
-	return filepath.WalkDir(src, func(path string, d os.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-
-		// Skip .db files
-		if !d.IsDir() && isDBFile(d.Name()) {
-			return nil
-		}
-
-		// Calculate relative path and destination
-		relPath, err := filepath.Rel(src, path)
-		if err != nil {
-			return err
-		}
-		dstPath := filepath.Join(dst, relPath)
-
-		if d.IsDir() {
-			return os.MkdirAll(dstPath, 0755)
-		} else {
-			return copyFile(path, dstPath)
-		}
-	})
+	// Write destination file
+	return os.WriteFile(dst, srcData, 0644)
 }
