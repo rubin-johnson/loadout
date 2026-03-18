@@ -17,7 +17,8 @@ var semverRE = regexp.MustCompile(`^\d+\.\d+\.\d+$`)
 
 // TargetEntry represents a target in the manifest
 type TargetEntry struct {
-	// Add fields as needed based on the actual structure
+	Path string `yaml:"path"`
+	Dest string `yaml:"dest"`
 }
 
 // Manifest represents the structure of manifest.yaml
@@ -96,11 +97,18 @@ func fromMap(data map[string]any) (*Manifest, error) {
 	var targets []TargetEntry
 	if targetsData, exists := data["targets"]; exists {
 		if targetsSlice, ok := targetsData.([]any); ok {
-			// Convert to TargetEntry slice if needed
 			targets = make([]TargetEntry, len(targetsSlice))
-			// For now, just create empty entries
-			for i := range targetsSlice {
-				targets[i] = TargetEntry{}
+			for i, targetData := range targetsSlice {
+				if targetMap, ok := targetData.(map[string]any); ok {
+					path, pathOk := targetMap["path"].(string)
+					dest, destOk := targetMap["dest"].(string)
+					if !pathOk || !destOk {
+						return nil, &ManifestError{Message: "target entries must have path and dest fields"}
+					}
+					targets[i] = TargetEntry{Path: path, Dest: dest}
+				} else {
+					return nil, &ManifestError{Message: "target entries must be objects"}
+				}
 			}
 		} else {
 			return nil, &ManifestError{Message: "targets must be an array"}
