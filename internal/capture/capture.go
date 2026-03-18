@@ -9,7 +9,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"loadout-system/internal/secrets"
+	"github.com/rubin-johnson/loadout/internal/secrets"
 )
 
 // DEFAULT_CAPTURES maps file patterns to their descriptions
@@ -81,7 +81,7 @@ func CaptureBundle(sourceDir, outputDir string, overwrite bool) error {
 	for _, dir := range SCAN_DIRS {
 		scanPath := filepath.Join(sourceDir, dir)
 		if _, err := os.Stat(scanPath); err == nil {
-			if warnings := secrets.ScanForSecrets(scanPath); len(warnings) > 0 {
+			if warnings, _ := secrets.ScanForSecrets(scanPath); len(warnings) > 0 {
 				for _, warning := range warnings {
 					fmt.Fprintf(os.Stderr, "WARNING: %s\n", warning)
 				}
