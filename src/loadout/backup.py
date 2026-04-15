@@ -10,7 +10,7 @@ _TS_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}-\d{6}$")
 
 
 def create_backup(target_dir: pathlib.Path) -> str:
-    ts = datetime.datetime.utcnow().strftime("%Y-%m-%d-%H%M%S")
+    ts = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d-%H%M%S")
     dest = target_dir / BACKUP_DIR / ts
     dest.mkdir(parents=True, exist_ok=True)
     for item in target_dir.iterdir():

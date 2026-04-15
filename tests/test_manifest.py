@@ -1,7 +1,9 @@
+import pathlib
+
 import pytest
 import yaml
-import pathlib
-from loadout.manifest import Manifest, TargetEntry, ManifestError, load_manifest
+
+from loadout.manifest import ManifestError, load_manifest
 
 
 def _write_manifest(path: pathlib.Path, data: dict):

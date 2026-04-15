@@ -1,4 +1,6 @@
-import subprocess, sys, pathlib
+import subprocess
+import sys
+
 from loadout.state import write_state
 
 

@@ -1,7 +1,6 @@
-import pathlib
 import time
 
-from loadout.backup import create_backup, list_backups, get_latest_backup, BACKUP_DIR
+from loadout.backup import BACKUP_DIR, create_backup, get_latest_backup, list_backups
 
 
 def test_create_backup_copies_files(tmp_path):
@@ -37,7 +36,7 @@ def test_get_latest_backup_none_when_empty(tmp_path):
 
 def test_get_latest_backup(tmp_path):
     (tmp_path / "f.txt").write_text("x")
-    ts1 = create_backup(tmp_path)
+    create_backup(tmp_path)
     time.sleep(1.1)
     ts2 = create_backup(tmp_path)
     assert get_latest_backup(tmp_path) == ts2

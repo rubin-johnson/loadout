@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+
 from loadout.state import read_state
 
 

@@ -1,5 +1,5 @@
-import pathlib, pytest
-from loadout.state import read_state, write_state, STATE_FILENAME
+from loadout.state import STATE_FILENAME, read_state, write_state
+
 
 def test_read_state_missing_returns_none(tmp_path):
     assert read_state(tmp_path) is None

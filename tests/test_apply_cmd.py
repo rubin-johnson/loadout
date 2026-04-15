@@ -1,6 +1,12 @@
-import pathlib, json, yaml, subprocess, sys, os
-from loadout.state import read_state
+import os
+import subprocess
+import sys
+
+import yaml
+
 from loadout.backup import list_backups
+from loadout.state import read_state
+
 
 def _cli(*args, env=None):
     return subprocess.run(

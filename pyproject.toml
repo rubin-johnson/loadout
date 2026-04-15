@@ -4,18 +4,47 @@ build-backend = "hatchling.build"
 
 [project]
 name = "loadout"
-version = "0.0.1"
+version = "0.1.0"
 description = "CLI tool to manage Claude Code configuration bundles"
 requires-python = ">=3.11"
+license = "Apache-2.0"
+authors = [{ name = "Rubin Johnson" }]
+keywords = ["claude", "claude-code", "configuration", "devtools"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Build Tools",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
 dependencies = [
     "pyyaml>=6.0",
 ]
 
+[project.urls]
+Repository = "https://github.com/rubin-johnson/loadout"
+Changelog = "https://github.com/rubin-johnson/loadout/blob/main/CHANGELOG.md"
+
 [project.scripts]
 loadout = "loadout.__main__:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0",
+    "ruff>=0.11",
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/loadout"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["F", "E", "W", "I"]

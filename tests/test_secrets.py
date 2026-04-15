@@ -1,4 +1,3 @@
-import pathlib
 from loadout.secrets import scan_for_secrets
 
 

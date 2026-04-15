@@ -1,0 +1,9 @@
+name: token-miser
+version: 0.1.0
+author: rubin-johnson
+description: Token-optimized Claude Code configuration for cost-conscious workflows
+targets:
+  - path: CLAUDE.md
+    dest: CLAUDE.md
+  - path: settings.json
+    dest: settings.json

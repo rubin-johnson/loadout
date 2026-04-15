@@ -2,11 +2,11 @@
 from __future__ import annotations
 
 import re
-import yaml
-from pathlib import Path
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
+import yaml
 
 _REQUIRED_FIELDS = {"name", "version", "author", "description", "targets"}
 

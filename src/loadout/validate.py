@@ -1,8 +1,9 @@
 """Bundle validation logic."""
 from __future__ import annotations
 
-import yaml
 from pathlib import Path
+
+import yaml
 
 from loadout.manifest import _REQUIRED_FIELDS, _SEMVER_RE
 

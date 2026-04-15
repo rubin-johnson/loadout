@@ -1,9 +1,19 @@
-bin/
-*.test
-*.out
-vendor/
-.DS_Store
+# Python
 __pycache__/
 *.pyc
 *.pyo
+*.egg-info/
+dist/
+build/
 .venv/
+.pytest_cache/
+
+# IDE / OS
+.DS_Store
+.vscode/
+.idea/
+
+# Agent artifacts
+.ralphael/
+.worktrees/
+*.log

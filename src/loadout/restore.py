@@ -4,10 +4,8 @@ from __future__ import annotations
 import shutil
 from pathlib import Path
 
-from loadout.state import read_state, clear_state
-
-
-BACKUP_DIR = ".loadout-backups"
+from loadout.backup import BACKUP_DIR
+from loadout.state import clear_state, read_state
 
 
 def restore_bundle(target: Path, backup: str | None = None, yes: bool = False) -> None:

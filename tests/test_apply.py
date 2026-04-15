@@ -1,11 +1,10 @@
-import pathlib
-import shutil
-import pytest
-import yaml
 from unittest.mock import patch
 
-from loadout.manifest import load_manifest
+import pytest
+import yaml
+
 from loadout.apply import atomic_apply
+from loadout.manifest import load_manifest
 
 
 def _make_bundle(tmp_path, files: dict, targets_override=None):

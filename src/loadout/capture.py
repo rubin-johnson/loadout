@@ -9,7 +9,6 @@ import yaml
 
 from loadout.secrets import scan_for_secrets
 
-
 DEFAULT_CAPTURES = [
     ("CLAUDE.md", "CLAUDE.md"),
     ("settings.json", "settings.json"),

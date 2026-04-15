@@ -34,16 +34,16 @@ def cmd_apply(args: argparse.Namespace) -> int:
 
 
 def cmd_status(args: argparse.Namespace) -> int:
-    from loadout.status import show_status
     from loadout.paths import get_target_root
+    from loadout.status import show_status
     target = get_target_root(args.target)
     show_status(target)
     return 0
 
 
 def cmd_restore(args: argparse.Namespace) -> int:
-    from loadout.restore import restore_bundle
     from loadout.paths import get_target_root
+    from loadout.restore import restore_bundle
     target = get_target_root(args.target)
     try:
         restore_bundle(target, backup=args.backup, yes=args.yes)
@@ -55,7 +55,8 @@ def cmd_restore(args: argparse.Namespace) -> int:
 
 def cmd_capture(args: argparse.Namespace) -> int:
     from loadout.capture import capture_bundle
-    source = Path(args.source) if args.source else _default_target()
+    from loadout.paths import get_target_root
+    source = Path(args.source) if args.source else get_target_root()
     output = Path(args.output) if args.output else Path.cwd() / "my-loadout"
     try:
         capture_bundle(source, output, yes=args.yes)
@@ -66,10 +67,13 @@ def cmd_capture(args: argparse.Namespace) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    from loadout import __version__
+
     parser = argparse.ArgumentParser(
         prog="loadout",
         description="Manage Claude Code configuration bundles",
     )
+    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     sub = parser.add_subparsers(dest="command", required=True)
 
     # validate

@@ -1,7 +1,8 @@
 import os
+import pathlib
 import subprocess
 import sys
-import pathlib
+
 import pytest
 import yaml
 
@@ -214,9 +215,10 @@ def test_bt001_roundtrip(tmp_path):
 
 
 def test_bt002_partial_failure_atomic(tmp_path):
+    from unittest.mock import patch
+
     from loadout.apply import atomic_apply
     from loadout.manifest import load_manifest
-    from unittest.mock import patch
 
     bundle = tmp_path / "bundle"
     bundle.mkdir()

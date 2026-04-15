@@ -1,7 +1,7 @@
-import pathlib
-import yaml
 import subprocess
 import sys
+
+import yaml
 
 from loadout.validate import validate_bundle
 
@@ -76,10 +76,9 @@ def test_capture_missing_optional_dirs(tmp_path):
 
 
 def test_capture_default_output_name(tmp_path, monkeypatch):
-    import os
     src = tmp_path / "claude"
     src.mkdir()
     (src / "CLAUDE.md").write_text("# x")
     monkeypatch.chdir(tmp_path)
-    r = _cli("capture", "--source", str(src), "--yes")
+    _cli("capture", "--source", str(src), "--yes")
     assert (tmp_path / "my-loadout" / "manifest.yaml").exists()

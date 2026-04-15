@@ -1,6 +1,5 @@
-import pathlib
 import yaml
-import pytest
+
 from loadout.validate import validate_bundle
 
 

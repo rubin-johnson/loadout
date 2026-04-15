@@ -6,12 +6,10 @@ import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
+from loadout.backup import BACKUP_DIR
 from loadout.manifest import Manifest
 from loadout.state import write_state
 from loadout.validate import validate_bundle
-
-
-BACKUP_DIR = ".loadout-backups"
 
 
 def _resolve_dest(dest_str: str, target: Path) -> Path | None:
