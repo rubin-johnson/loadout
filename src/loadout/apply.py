@@ -18,9 +18,13 @@ def _resolve_dest(dest_str: str, target: Path) -> Path | None:
     """
     if dest_str.startswith("~/.claude/"):
         dest_str = dest_str[len("~/.claude/"):]
+    elif dest_str in ("~/.claude", "~"):
+        return None
     elif dest_str.startswith("~/"):
         dest_str = dest_str[2:]
     elif dest_str.startswith("/"):
+        return None
+    if not dest_str:
         return None
     resolved = (target / dest_str).resolve()
     if not resolved.is_relative_to(target.resolve()):
