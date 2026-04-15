@@ -5,11 +5,11 @@ build-backend = "hatchling.build"
 [project]
 name = "loadout"
 version = "0.1.0"
-description = "CLI tool to manage Claude Code configuration bundles"
+description = "CLI tool to manage Claude Code configuration packages"
 requires-python = ">=3.11"
 license = "Apache-2.0"
 authors = [{ name = "Rubin Johnson" }]
-keywords = ["claude", "claude-code", "configuration", "devtools"]
+keywords = ["claude", "claude-code", "configuration", "devtools", "kanon"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Environment :: Console",

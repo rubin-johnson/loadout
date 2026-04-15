@@ -1,6 +1,6 @@
 # loadout
 
-CLI tool to manage Claude Code configuration bundles. Capture, apply, restore, version, and share a complete Claude Code setup as a single unit.
+CLI tool to manage Claude Code configuration packages. Pack, apply, restore, version, and share a complete Claude Code setup as a single unit.
 
 ## Why
 
@@ -26,10 +26,10 @@ Requires Python 3.11+.
 ## Quick start
 
 ```bash
-# Capture your current setup
-loadout capture --source ~/.claude --output ./my-loadout
+# Pack your current setup
+loadout pack --source ~/.claude --output ./my-loadout
 
-# Validate a bundle
+# Validate a package
 loadout validate ./my-loadout
 
 # Apply to a target
@@ -46,18 +46,18 @@ loadout restore --yes
 
 ### validate
 
-Check that a bundle is well-formed. Exits 0 on success, 1 with one error per line on failure. All errors are reported (not fail-fast).
+Check that a package is well-formed. Exits 0 on success, 1 with one error per line on failure. All errors are reported (not fail-fast).
 
 ```bash
-loadout validate <bundle-dir>
+loadout validate <package-dir>
 ```
 
 ### apply
 
-Apply a bundle to a target directory (default: `~/.claude`). Creates a timestamped backup before writing anything.
+Apply a package to a target directory (default: `~/.claude`). Creates a timestamped backup before writing anything.
 
 ```bash
-loadout apply <bundle-dir> [--target <dir>] [--yes] [--dry-run]
+loadout apply <package-dir> [--target <dir>] [--yes] [--dry-run]
 ```
 
 | Flag | Purpose |
@@ -66,7 +66,7 @@ loadout apply <bundle-dir> [--target <dir>] [--yes] [--dry-run]
 | `--yes` | Skip confirmation prompts (required for CI/non-TTY) |
 | `--dry-run` | Show what would change without writing anything |
 
-Applying the same bundle (name + version) twice is idempotent.
+Applying the same package (name + version) twice is idempotent.
 
 ### status
 
@@ -84,23 +84,23 @@ Restore from a backup created by `apply`.
 loadout restore [--target <dir>] [--backup <timestamp>] [--yes]
 ```
 
-### capture
+### pack
 
-Snapshot a live config directory as a loadout bundle.
+Snapshot a live config directory as a loadout package.
 
 ```bash
-loadout capture [--source <dir>] [--output <dir>] [--yes]
+loadout pack [--source <dir>] [--output <dir>] [--yes]
 ```
 
 | Flag | Purpose |
 |------|---------|
-| `--source` | Directory to capture from (default: `~/.claude`) |
-| `--output` | Output bundle directory (default: `./my-loadout`) |
+| `--source` | Directory to pack from (default: `~/.claude`) |
+| `--output` | Output package directory (default: `./my-loadout`) |
 | `--yes` | Use defaults, skip prompts, overwrite existing output |
 
 Warns about potential secrets in `hooks/` and `bin/`. Skips `.db` files.
 
-## Bundle structure
+## Package structure
 
 ```
 my-loadout/
@@ -132,7 +132,7 @@ targets:
 All destructive operations accept `--yes` to skip prompts:
 
 ```bash
-loadout apply ./bundle --target /workspace/.claude --yes
+loadout apply ./my-package --target /workspace/.claude --yes
 ```
 
 Override the default target via environment variable:
@@ -141,18 +141,19 @@ Override the default target via environment variable:
 LOADOUT_TARGET_ROOT=/workspace/.claude loadout apply ./my-loadout --yes
 ```
 
-## Relationship with kanon
-
-[Kanon](https://github.com/caylent-solutions/kanon) is a DevOps package manager that distributes versioned automation packages across teams via git-repo manifests. Loadout and kanon are **complementary**:
-
-- **Kanon** distributes versioned packages (linting rules, security configs, build conventions) across an organization
-- **Loadout** manages the active Claude Code configuration on a single machine
-
-A kanon source could distribute loadout bundles as packages. After `kanon install` syncs bundles to `.packages/`, `loadout apply` activates one on the local machine. Kanon handles distribution and versioning; loadout handles the local apply/backup/restore lifecycle.
-
 ## Development
 
 ```bash
 uv sync
 uv run pytest tests/ -v
 ```
+
+## Ecosystem
+
+### kanon
+
+A loadout package is the local form of what kanon distributes. After `kanon install`, packages appear in `.packages/` ready for `loadout apply`.
+
+### token_miser
+
+token_miser benchmarks packages to measure their impact on Claude Code token usage, quality, and cost. It can tune a package and publish the result back to kanon.
