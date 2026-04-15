@@ -1,4 +1,4 @@
-"""Bundle apply logic."""
+"""Package apply logic."""
 from __future__ import annotations
 
 import shutil
@@ -9,7 +9,7 @@ from pathlib import Path
 from loadout.backup import BACKUP_DIR
 from loadout.manifest import Manifest
 from loadout.state import write_state
-from loadout.validate import validate_bundle
+from loadout.validate import validate_package
 
 
 def _resolve_dest(dest_str: str, target: Path) -> Path | None:
@@ -26,16 +26,15 @@ def _resolve_dest(dest_str: str, target: Path) -> Path | None:
 
 
 def atomic_apply(bundle_path: Path, target: Path, manifest: Manifest) -> None:
-    """Copy manifest targets from bundle to target atomically.
+    """Copy manifest targets from package to target atomically.
 
     Uses a temp dir + move strategy so a failure mid-copy leaves existing
-    files untouched. Does not back up, does not write state — callers handle that.
+    files untouched. Does not back up, does not write state -- callers handle that.
     """
-    # Stage all files into a temp dir first, then move each into place
     with tempfile.TemporaryDirectory(dir=target.parent) as staging_str:
         staging = Path(staging_str)
 
-        staged: list[tuple[Path, Path]] = []  # (staged_path, final_dest)
+        staged: list[tuple[Path, Path]] = []
         for entry in manifest.targets:
             src = bundle_path / entry.path
             dest = _resolve_dest(entry.dest, target)
@@ -49,10 +48,6 @@ def atomic_apply(bundle_path: Path, target: Path, manifest: Manifest) -> None:
                 shutil.copy2(src, staged_dest)
             staged.append((staged_dest, dest))
 
-        # Move from staging to final location.
-        # For files: shutil.move → os.replace (atomic, replaces without pre-delete).
-        # For dirs: rmtree first, then move — not atomic, but directory replacement
-        #           can't be made atomic without OS-level tricks.
         for staged_path, final_dest in staged:
             final_dest.parent.mkdir(parents=True, exist_ok=True)
             if final_dest.exists() and final_dest.is_dir():
@@ -60,11 +55,11 @@ def atomic_apply(bundle_path: Path, target: Path, manifest: Manifest) -> None:
             shutil.move(str(staged_path), final_dest)
 
 
-def apply_bundle(bundle_path: Path, target: Path, yes: bool = False, dry_run: bool = False) -> None:
-    """Apply a bundle to target directory. Backs up existing files first."""
-    errors = validate_bundle(bundle_path)
+def apply_package(bundle_path: Path, target: Path, yes: bool = False, dry_run: bool = False) -> None:
+    """Apply a package to target directory. Backs up existing files first."""
+    errors = validate_package(bundle_path)
     if errors:
-        raise ValueError("Bundle validation failed:\n" + "\n".join(f"  - {e}" for e in errors))
+        raise ValueError("Package validation failed:\n" + "\n".join(f"  - {e}" for e in errors))
 
     manifest = Manifest.load(bundle_path)
     timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d-%H%M%S")
@@ -80,7 +75,6 @@ def apply_bundle(bundle_path: Path, target: Path, yes: bool = False, dry_run: bo
     target.mkdir(parents=True, exist_ok=True)
     backup_dir.mkdir(parents=True, exist_ok=True)
 
-    # Backup existing files before touching anything
     for entry in manifest.targets:
         dest = _resolve_dest(entry.dest, target)
         if dest is None or not dest.exists():
@@ -108,3 +102,5 @@ def apply_bundle(bundle_path: Path, target: Path, yes: bool = False, dry_run: bo
         "backup": timestamp,
         "placed_paths": placed_paths,
     })
+
+apply_bundle = apply_package

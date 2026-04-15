@@ -16,7 +16,7 @@ def show_status(target: Path) -> None:
     print(f"Active loadout: {state.get('active', 'unknown')}")
     print(f"  Version:    {state.get('manifest_version', 'unknown')}")
     print(f"  Applied at: {state.get('applied_at', 'unknown')}")
-    print(f"  Bundle:     {state.get('bundle_path', 'unknown')}")
+    print(f"  Package:    {state.get('bundle_path', 'unknown')}")
     print(f"  Backup:     {state.get('backup', 'none')}")
 
 get_status = show_status

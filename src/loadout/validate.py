@@ -1,4 +1,4 @@
-"""Bundle validation logic."""
+"""Package validation logic."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -8,25 +8,25 @@ import yaml
 from loadout.manifest import _REQUIRED_FIELDS, _SEMVER_RE
 
 
-def validate_bundle(bundle_path: Path | None) -> list[str]:
+def validate_package(bundle_path: Path | None) -> list[str]:
     """Return a list of validation errors; empty list means valid."""
     errors: list[str] = []
 
     if bundle_path is None:
-        errors.append("No bundle path provided")
+        errors.append("No package path provided")
         return errors
 
     if not bundle_path.exists():
-        errors.append(f"Bundle path does not exist: {bundle_path}")
+        errors.append(f"Package path does not exist: {bundle_path}")
         return errors
 
     if not bundle_path.is_dir():
-        errors.append(f"Bundle path is not a directory: {bundle_path}")
+        errors.append(f"Package path is not a directory: {bundle_path}")
         return errors
 
     manifest_path = bundle_path / "manifest.yaml"
     if not manifest_path.exists():
-        errors.append("manifest.yaml not found in bundle")
+        errors.append("manifest.yaml not found in package")
         return errors
 
     try:
@@ -63,6 +63,8 @@ def validate_bundle(bundle_path: Path | None) -> list[str]:
     for path in declared_paths:
         src = bundle_path / path
         if not src.exists():
-            errors.append(f"Target source not found in bundle: {path}")
+            errors.append(f"Target source not found in package: {path}")
 
     return errors
+
+validate_bundle = validate_package

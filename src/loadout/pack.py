@@ -1,4 +1,4 @@
-"""Capture current config as a loadout bundle."""
+"""Pack current config into a loadout package."""
 from __future__ import annotations
 
 import shutil
@@ -20,8 +20,8 @@ _SKIP_SUFFIXES = {".db"}
 _SCAN_DIRS = {"hooks", "bin"}
 
 
-def capture_bundle(source: Path, output: Path, yes: bool = False) -> None:
-    """Capture source directory as a loadout bundle at output path."""
+def pack(source: Path, output: Path, yes: bool = False) -> None:
+    """Pack source directory into a loadout package at output path."""
     if output.exists() and not yes:
         raise ValueError(f"Output path already exists: {output}. Use --yes to overwrite.")
 
@@ -41,7 +41,6 @@ def capture_bundle(source: Path, output: Path, yes: bool = False) -> None:
         dest = output / src_name
         if src.is_dir():
             shutil.copytree(src, dest, ignore=_ignore_db)
-            # Scan for secrets in copied dir
             if src_name in _SCAN_DIRS:
                 for f in dest.rglob("*"):
                     if f.is_file():
@@ -55,7 +54,6 @@ def capture_bundle(source: Path, output: Path, yes: bool = False) -> None:
             shutil.copy2(src, dest)
         targets.append({"path": src_name, "dest": dest_name})
 
-    # Warn about .db files in source root
     for item in source.iterdir():
         if item.suffix in _SKIP_SUFFIXES or item.name.endswith(".db"):
             print(f"Warning: skipping database file (non-capturable): {item.name}", file=sys.stderr)
@@ -80,5 +78,3 @@ def capture_bundle(source: Path, output: Path, yes: bool = False) -> None:
 
 def _ignore_db(directory: str, contents: list[str]) -> list[str]:
     return [f for f in contents if Path(f).suffix in _SKIP_SUFFIXES or f.endswith(".db")]
-
-capture = capture_bundle

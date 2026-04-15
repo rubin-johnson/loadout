@@ -59,12 +59,12 @@ def test_bt005_smoke_restore(tmp_path):
     assert r.returncode == 0, r.stderr
 
 
-def test_bt005_smoke_capture(tmp_path):
+def test_bt005_smoke_pack(tmp_path):
     source = tmp_path / "source"
     source.mkdir()
     (source / "CLAUDE.md").write_text("# captured")
     out = tmp_path / "captured-bundle"
-    r = _cli("capture", "--source", str(source), "--output", str(out), "--yes")
+    r = _cli("pack", "--source", str(source), "--output", str(out), "--yes")
     assert r.returncode == 0, r.stderr
     assert (out / "manifest.yaml").exists()
 

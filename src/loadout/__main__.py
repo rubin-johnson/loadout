@@ -7,26 +7,26 @@ from pathlib import Path
 
 
 def cmd_validate(args: argparse.Namespace) -> int:
-    from loadout.validate import validate_bundle
-    bundle = Path(args.bundle)
-    errors = validate_bundle(bundle)
+    from loadout.validate import validate_package
+    pkg = Path(args.bundle)
+    errors = validate_package(pkg)
     if errors:
         for e in errors:
             print(f"ERROR: {e}", file=sys.stderr)
         return 1
-    print(f"Bundle {bundle} is valid.")
+    print(f"Package {pkg} is valid.")
     return 0
 
 
 def cmd_apply(args: argparse.Namespace) -> int:
-    from loadout.apply import apply_bundle
+    from loadout.apply import apply_package
     from loadout.paths import get_target_root
-    bundle = Path(args.bundle)
+    pkg = Path(args.bundle)
     target = get_target_root(args.target)
     try:
-        apply_bundle(bundle, target, yes=args.yes, dry_run=args.dry_run)
+        apply_package(pkg, target, yes=args.yes, dry_run=args.dry_run)
         if not args.dry_run:
-            print(f"Applied {bundle} to {target}")
+            print(f"Applied {pkg} to {target}")
     except ValueError as e:
         print(f"ERROR: {e}", file=sys.stderr)
         return 1
@@ -43,23 +43,23 @@ def cmd_status(args: argparse.Namespace) -> int:
 
 def cmd_restore(args: argparse.Namespace) -> int:
     from loadout.paths import get_target_root
-    from loadout.restore import restore_bundle
+    from loadout.restore import restore_package
     target = get_target_root(args.target)
     try:
-        restore_bundle(target, backup=args.backup, yes=args.yes)
+        restore_package(target, backup=args.backup, yes=args.yes)
     except ValueError as e:
         print(f"ERROR: {e}", file=sys.stderr)
         return 1
     return 0
 
 
-def cmd_capture(args: argparse.Namespace) -> int:
-    from loadout.capture import capture_bundle
+def cmd_pack(args: argparse.Namespace) -> int:
+    from loadout.pack import pack
     from loadout.paths import get_target_root
     source = Path(args.source) if args.source else get_target_root()
     output = Path(args.output) if args.output else Path.cwd() / "my-loadout"
     try:
-        capture_bundle(source, output, yes=args.yes)
+        pack(source, output, yes=args.yes)
     except ValueError as e:
         print(f"ERROR: {e}", file=sys.stderr)
         return 1
@@ -71,18 +71,18 @@ def build_parser() -> argparse.ArgumentParser:
 
     parser = argparse.ArgumentParser(
         prog="loadout",
-        description="Manage Claude Code configuration bundles",
+        description="Manage Claude Code configuration packages",
     )
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     sub = parser.add_subparsers(dest="command", required=True)
 
     # validate
-    p_validate = sub.add_parser("validate", help="Validate a bundle")
-    p_validate.add_argument("bundle", help="Path to bundle directory")
+    p_validate = sub.add_parser("validate", help="Validate a package")
+    p_validate.add_argument("bundle", help="Path to package directory")
 
     # apply
-    p_apply = sub.add_parser("apply", help="Apply a bundle")
-    p_apply.add_argument("bundle", help="Path to bundle directory")
+    p_apply = sub.add_parser("apply", help="Apply a package")
+    p_apply.add_argument("bundle", help="Path to package directory")
     p_apply.add_argument("--target", default=None, help="Target directory (default: ~/.claude)")
     p_apply.add_argument("--yes", action="store_true", help="Skip confirmation prompts")
     p_apply.add_argument("--dry-run", action="store_true", help="Show what would change, do nothing")
@@ -97,10 +97,16 @@ def build_parser() -> argparse.ArgumentParser:
     p_restore.add_argument("--backup", default=None, help="Backup timestamp to restore")
     p_restore.add_argument("--yes", action="store_true", help="Skip confirmation prompts")
 
-    # capture
-    p_capture = sub.add_parser("capture", help="Capture current config as a bundle")
+    # pack
+    p_pack = sub.add_parser("pack", help="Pack current config into a package")
+    p_pack.add_argument("--source", default=None, help="Source directory (default: ~/.claude)")
+    p_pack.add_argument("--output", default=None, help="Output package directory")
+    p_pack.add_argument("--yes", action="store_true", help="Skip confirmation prompts")
+
+    # capture (hidden alias for pack)
+    p_capture = sub.add_parser("capture", help=argparse.SUPPRESS)
     p_capture.add_argument("--source", default=None, help="Source directory (default: ~/.claude)")
-    p_capture.add_argument("--output", default=None, help="Output bundle directory")
+    p_capture.add_argument("--output", default=None, help="Output package directory")
     p_capture.add_argument("--yes", action="store_true", help="Skip confirmation prompts")
 
     return parser
@@ -115,7 +121,8 @@ def main() -> None:
         "apply": cmd_apply,
         "status": cmd_status,
         "restore": cmd_restore,
-        "capture": cmd_capture,
+        "pack": cmd_pack,
+        "capture": cmd_pack,
     }
 
     handler = handlers.get(args.command)

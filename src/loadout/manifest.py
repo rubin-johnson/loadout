@@ -1,4 +1,4 @@
-"""Bundle manifest loading and validation."""
+"""Package manifest loading and validation."""
 from __future__ import annotations
 
 import re

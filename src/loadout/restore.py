@@ -1,4 +1,4 @@
-"""Bundle restore logic."""
+"""Package restore logic."""
 from __future__ import annotations
 
 import shutil
@@ -8,7 +8,7 @@ from loadout.backup import BACKUP_DIR
 from loadout.state import clear_state, read_state
 
 
-def restore_bundle(target: Path, backup: str | None = None, yes: bool = False) -> None:
+def restore_package(target: Path, backup: str | None = None, yes: bool = False) -> None:
     """Restore target from the most recent backup (or named backup)."""
     state = read_state(target)
 
@@ -16,7 +16,6 @@ def restore_bundle(target: Path, backup: str | None = None, yes: bool = False) -
         if state is not None and state.get("backup"):
             backup = state["backup"]
         else:
-            # Find the most recent backup by directory name
             backup_root = target / BACKUP_DIR
             if not backup_root.exists():
                 raise ValueError("No backups found. Nothing to restore.")
@@ -29,7 +28,6 @@ def restore_bundle(target: Path, backup: str | None = None, yes: bool = False) -
     if not backup_dir.exists():
         raise ValueError(f"Backup not found: {backup_dir}")
 
-    # Remove only files/dirs that apply placed (from state), not unrelated files.
     placed_paths = (state or {}).get("placed_paths", [])
     if placed_paths:
         for path_str in placed_paths:
@@ -40,7 +38,6 @@ def restore_bundle(target: Path, backup: str | None = None, yes: bool = False) -
                 else:
                     p.unlink()
     else:
-        # Legacy: no placed_paths in state — clear everything except backups dir
         for item in target.iterdir():
             if item.name == BACKUP_DIR:
                 continue
@@ -49,7 +46,6 @@ def restore_bundle(target: Path, backup: str | None = None, yes: bool = False) -
             else:
                 item.unlink()
 
-    # Restore each file/dir from backup
     for item in backup_dir.iterdir():
         dest = target / item.name
         if item.is_dir():
@@ -60,5 +56,4 @@ def restore_bundle(target: Path, backup: str | None = None, yes: bool = False) -
     clear_state(target)
     print(f"Restored from backup: {backup}")
 
-# Alias for backward compatibility with tests
-restore_command = restore_bundle
+restore_bundle = restore_package

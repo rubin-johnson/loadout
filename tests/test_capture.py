@@ -3,7 +3,7 @@ import sys
 
 import yaml
 
-from loadout.validate import validate_bundle
+from loadout.validate import validate_package
 
 
 def _cli(*args):
@@ -24,26 +24,26 @@ def _make_source(tmp_path):
     return src
 
 
-def test_capture_produces_valid_bundle(tmp_path):
+def test_pack_produces_valid_package(tmp_path):
     src = _make_source(tmp_path)
     out = tmp_path / "out"
-    r = _cli("capture", "--source", str(src), "--output", str(out), "--yes")
+    r = _cli("pack", "--source", str(src), "--output", str(out), "--yes")
     assert r.returncode == 0, r.stderr
-    errors = validate_bundle(out)
+    errors = validate_package(out)
     assert errors == [], errors
 
 
-def test_capture_targets_include_all_files(tmp_path):
+def test_pack_targets_include_all_files(tmp_path):
     src = _make_source(tmp_path)
     out = tmp_path / "out"
-    _cli("capture", "--source", str(src), "--output", str(out), "--yes")
+    _cli("pack", "--source", str(src), "--output", str(out), "--yes")
     manifest = yaml.safe_load((out / "manifest.yaml").read_text())
     dest_paths = {t["dest"] for t in manifest["targets"]}
     assert "CLAUDE.md" in dest_paths
     assert "settings.json" in dest_paths
 
 
-def test_capture_warns_about_secrets(tmp_path):
+def test_pack_warns_about_secrets(tmp_path):
     src = tmp_path / "claude"
     src.mkdir()
     (src / "CLAUDE.md").write_text("# ok")
@@ -51,34 +51,43 @@ def test_capture_warns_about_secrets(tmp_path):
     bin_dir.mkdir()
     (bin_dir / "my-script.sh").write_text("export TOKEN=supersecret\n")
     out = tmp_path / "out"
-    r = _cli("capture", "--source", str(src), "--output", str(out), "--yes")
+    r = _cli("pack", "--source", str(src), "--output", str(out), "--yes")
     assert r.returncode == 0
     assert "secret" in r.stderr.lower() or "TOKEN" in r.stderr
 
 
-def test_capture_warns_about_db(tmp_path):
+def test_pack_warns_about_db(tmp_path):
     src = tmp_path / "claude"
     src.mkdir()
     (src / "CLAUDE.md").write_text("# ok")
     (src / "claude-mem.db").write_bytes(b"SQLite")
     out = tmp_path / "out"
-    r = _cli("capture", "--source", str(src), "--output", str(out), "--yes")
+    r = _cli("pack", "--source", str(src), "--output", str(out), "--yes")
     assert "db" in r.stderr.lower() or "database" in r.stderr.lower() or "claude-mem" in r.stderr
 
 
-def test_capture_missing_optional_dirs(tmp_path):
+def test_pack_missing_optional_dirs(tmp_path):
     src = tmp_path / "claude"
     src.mkdir()
     (src / "CLAUDE.md").write_text("# minimal")
     out = tmp_path / "out"
-    r = _cli("capture", "--source", str(src), "--output", str(out), "--yes")
+    r = _cli("pack", "--source", str(src), "--output", str(out), "--yes")
     assert r.returncode == 0
 
 
-def test_capture_default_output_name(tmp_path, monkeypatch):
+def test_pack_default_output_name(tmp_path, monkeypatch):
     src = tmp_path / "claude"
     src.mkdir()
     (src / "CLAUDE.md").write_text("# x")
     monkeypatch.chdir(tmp_path)
-    _cli("capture", "--source", str(src), "--yes")
+    _cli("pack", "--source", str(src), "--yes")
     assert (tmp_path / "my-loadout" / "manifest.yaml").exists()
+
+
+def test_capture_alias_works(tmp_path):
+    src = _make_source(tmp_path)
+    out = tmp_path / "out"
+    r = _cli("capture", "--source", str(src), "--output", str(out), "--yes")
+    assert r.returncode == 0, r.stderr
+    errors = validate_package(out)
+    assert errors == [], errors
