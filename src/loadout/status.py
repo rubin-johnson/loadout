@@ -18,5 +18,3 @@ def show_status(target: Path) -> None:
     print(f"  Applied at: {state.get('applied_at', 'unknown')}")
     print(f"  Package:    {state.get('bundle_path', 'unknown')}")
     print(f"  Backup:     {state.get('backup', 'none')}")
-
-get_status = show_status

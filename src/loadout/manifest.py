@@ -16,9 +16,6 @@ _SEMVER_RE = re.compile(
     r"(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$"
 )
 
-# Keep for backward compat
-REQUIRED_FIELDS = _REQUIRED_FIELDS
-
 
 class ManifestError(ValueError):
     pass

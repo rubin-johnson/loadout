@@ -66,8 +66,6 @@ loadout apply <package-dir> [--target <dir>] [--yes] [--dry-run]
 | `--yes` | Skip confirmation prompts (required for CI/non-TTY) |
 | `--dry-run` | Show what would change without writing anything |
 
-Applying the same package (name + version) twice is idempotent.
-
 ### status
 
 Show the currently applied loadout.

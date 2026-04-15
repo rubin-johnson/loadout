@@ -61,10 +61,11 @@ def validate_package(bundle_path: Path | None) -> list[str]:
             declared_paths.append(t["path"])
 
     for path in declared_paths:
-        src = bundle_path / path
+        src = (bundle_path / path).resolve()
+        if not src.is_relative_to(bundle_path.resolve()):
+            errors.append(f"Target source escapes package directory: {path}")
+            continue
         if not src.exists():
             errors.append(f"Target source not found in package: {path}")
 
     return errors
-
-validate_bundle = validate_package

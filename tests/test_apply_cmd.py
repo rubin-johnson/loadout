@@ -43,13 +43,18 @@ def test_apply_creates_backup(tmp_path):
     _cli("apply", str(bundle), "--target", str(target), "--yes")
     assert len(list_backups(target)) == 1
 
-def test_apply_idempotent_no_duplicate_backup(tmp_path):
+def test_apply_second_run_updates_state(tmp_path):
+    """Re-applying the same package updates state to reflect latest apply."""
     bundle, target = tmp_path / "b", tmp_path / "t"
     target.mkdir()
     _make_bundle(bundle)
     _cli("apply", str(bundle), "--target", str(target), "--yes")
+    first_state = read_state(target)
+    _make_bundle(bundle, version="0.2.0")
     _cli("apply", str(bundle), "--target", str(target), "--yes")
-    assert len(list_backups(target)) == 1
+    second_state = read_state(target)
+    assert second_state["manifest_version"] == "0.2.0"
+    assert second_state["applied_at"] >= first_state["applied_at"]
 
 def test_dry_run_no_changes(tmp_path):
     bundle, target = tmp_path / "b", tmp_path / "t"

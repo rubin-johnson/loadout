@@ -55,7 +55,7 @@ def pack(source: Path, output: Path, yes: bool = False) -> None:
         targets.append({"path": src_name, "dest": dest_name})
 
     for item in source.iterdir():
-        if item.suffix in _SKIP_SUFFIXES or item.name.endswith(".db"):
+        if item.suffix in _SKIP_SUFFIXES:
             print(f"Warning: skipping database file (non-capturable): {item.name}", file=sys.stderr)
 
     if not targets:
@@ -65,16 +65,16 @@ def pack(source: Path, output: Path, yes: bool = False) -> None:
     manifest_data = {
         "name": output.name,
         "version": "0.0.1",
-        "author": "captured",
-        "description": f"Captured from {source}",
+        "author": "packed",
+        "description": f"Packed from {source}",
         "targets": targets,
     }
 
     with (output / "manifest.yaml").open("w") as f:
         yaml.dump(manifest_data, f, default_flow_style=False)
 
-    print(f"Captured loadout to {output}")
+    print(f"Packed loadout to {output}")
 
 
 def _ignore_db(directory: str, contents: list[str]) -> list[str]:
-    return [f for f in contents if Path(f).suffix in _SKIP_SUFFIXES or f.endswith(".db")]
+    return [f for f in contents if Path(f).suffix in _SKIP_SUFFIXES]

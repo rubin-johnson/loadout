@@ -8,7 +8,7 @@ from pathlib import Path
 
 def cmd_validate(args: argparse.Namespace) -> int:
     from loadout.validate import validate_package
-    pkg = Path(args.bundle)
+    pkg = Path(args.package)
     errors = validate_package(pkg)
     if errors:
         for e in errors:
@@ -21,7 +21,7 @@ def cmd_validate(args: argparse.Namespace) -> int:
 def cmd_apply(args: argparse.Namespace) -> int:
     from loadout.apply import apply_package
     from loadout.paths import get_target_root
-    pkg = Path(args.bundle)
+    pkg = Path(args.package)
     target = get_target_root(args.target)
     try:
         apply_package(pkg, target, yes=args.yes, dry_run=args.dry_run)
@@ -78,11 +78,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     # validate
     p_validate = sub.add_parser("validate", help="Validate a package")
-    p_validate.add_argument("bundle", help="Path to package directory")
+    p_validate.add_argument("package", help="Path to package directory")
 
     # apply
     p_apply = sub.add_parser("apply", help="Apply a package")
-    p_apply.add_argument("bundle", help="Path to package directory")
+    p_apply.add_argument("package", help="Path to package directory")
     p_apply.add_argument("--target", default=None, help="Target directory (default: ~/.claude)")
     p_apply.add_argument("--yes", action="store_true", help="Skip confirmation prompts")
     p_apply.add_argument("--dry-run", action="store_true", help="Show what would change, do nothing")

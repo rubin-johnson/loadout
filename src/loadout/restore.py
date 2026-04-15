@@ -29,9 +29,12 @@ def restore_package(target: Path, backup: str | None = None, yes: bool = False) 
         raise ValueError(f"Backup not found: {backup_dir}")
 
     placed_paths = (state or {}).get("placed_paths", [])
+    target_resolved = target.resolve()
     if placed_paths:
         for path_str in placed_paths:
-            p = Path(path_str)
+            p = Path(path_str).resolve()
+            if not p.is_relative_to(target_resolved):
+                continue
             if p.exists():
                 if p.is_dir():
                     shutil.rmtree(p)
@@ -55,5 +58,3 @@ def restore_package(target: Path, backup: str | None = None, yes: bool = False) 
 
     clear_state(target)
     print(f"Restored from backup: {backup}")
-
-restore_bundle = restore_package

@@ -14,7 +14,7 @@ from loadout.validate import validate_package
 
 def _resolve_dest(dest_str: str, target: Path) -> Path | None:
     """Resolve a manifest dest string to an absolute path under target.
-    Returns None for absolute paths (not supported in --target mode).
+    Returns None for absolute paths or paths that escape target.
     """
     if dest_str.startswith("~/.claude/"):
         dest_str = dest_str[len("~/.claude/"):]
@@ -22,7 +22,10 @@ def _resolve_dest(dest_str: str, target: Path) -> Path | None:
         dest_str = dest_str[2:]
     elif dest_str.startswith("/"):
         return None
-    return target / dest_str
+    resolved = (target / dest_str).resolve()
+    if not resolved.is_relative_to(target.resolve()):
+        return None
+    return resolved
 
 
 def atomic_apply(bundle_path: Path, target: Path, manifest: Manifest) -> None:
@@ -102,5 +105,3 @@ def apply_package(bundle_path: Path, target: Path, yes: bool = False, dry_run: b
         "backup": timestamp,
         "placed_paths": placed_paths,
     })
-
-apply_bundle = apply_package
