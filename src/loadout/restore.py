@@ -5,7 +5,7 @@ import shutil
 from pathlib import Path
 
 from loadout.apply import _confirm
-from loadout.backup import BACKUP_DIR
+from loadout.backup import BACKUP_DIR, list_backups
 from loadout.state import clear_state, read_state
 
 
@@ -17,13 +17,10 @@ def restore_package(target: Path, backup: str | None = None, yes: bool = False) 
         if state is not None and state.get("backup"):
             backup = state["backup"]
         else:
-            backup_root = target / BACKUP_DIR
-            if not backup_root.exists():
-                raise ValueError("No backups found. Nothing to restore.")
-            backups = sorted(backup_root.iterdir())
+            backups = list_backups(target)
             if not backups:
                 raise ValueError("No backups found. Nothing to restore.")
-            backup = backups[-1].name
+            backup = backups[-1]
 
     backup_dir = target / BACKUP_DIR / backup
     if not backup_dir.exists():
