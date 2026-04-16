@@ -86,3 +86,40 @@
 - Tagged 0.1.0
 - Updated token_miser/.kanon to point to the new repo (was loadout-bundles, now loadout-packages)
 - This closes the symbiotic loop: kanon distributes -> loadout applies -> token_miser measures
+
+## 2026-04-15 — Review-fix-loop-0, naming finalization, docs, contributor setup
+
+### Review-fix-loop-0 (zero tolerance — 0 Critical + 0 Important to exit)
+- Created new skill `/review-fix-loop-0` — loops until clean, 10-iteration hard cap, oscillation detection
+- Updated `/review-fix-loop` to be project-agnostic (removed hardcoded boxy test command)
+- Ran 3 iterations on loadout: 2 Important → 1 Important → 0 (clean)
+- Fixes: copytree dirs_exist_ok in restore, secret scan export pattern tightened, restore fallback uses list_backups()
+
+### Naming finalization (bundle→package, capture→pack)
+- Renamed bundle_path→package_path in all params, state file schema, and test fixtures
+- Renamed DEFAULT_CAPTURES→DEFAULT_TARGETS, "non-capturable"→"not packable"
+- Renamed test_capture.py→test_pack.py
+- Fixed capture alias: argv rewrite instead of duplicate subparser (was leaking into --help)
+- Zero "bundle" or "capture" references remain in source or tests
+
+### New features
+- Confirmation guard: apply and restore now require --yes for non-TTY (was documented but unimplemented)
+- Walrus operator for _resolve_dest double call
+- Secret scan preserves subdirectory paths in warnings
+
+### Documentation
+- design-notes.md rewritten from scratch with current terminology
+- CONTRIBUTING.md added (dev setup, test categories, code style, terminology table)
+
+### Ecosystem
+- Pushed loadout and token_miser to GitHub
+- Invited DeeBradley (deeonte) as collaborator to both repos (already on ralphael)
+- 87 tests passing in loadout, all clean
+
+### What's next
+- Tune benchmark task prompts for token_miser (Flask/httpx tasks failing)
+- Run repeated experiments for statistical significance
+- Add LLM-powered recommendation layer to token_miser
+- Consider adding `loadout diff` and `loadout list` commands
+
+<!-- session: 2026-04-16T01:15:49Z | cost: $0.0000 | tokens: 0 | model:  | sha: 24761fb -->
