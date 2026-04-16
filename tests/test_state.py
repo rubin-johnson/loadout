@@ -8,7 +8,7 @@ def test_write_then_read(tmp_path):
     state = {
         "active": "my-loadout",
         "applied_at": "2026-01-01T00:00:00Z",
-        "bundle_path": "/tmp/bundle",
+        "package_path": "/tmp/pkg",
         "manifest_version": "0.1.0",
         "backup": "2026-01-01-000000",
     }
@@ -19,20 +19,20 @@ def test_write_then_read(tmp_path):
 def test_write_creates_target_dir(tmp_path):
     nested = tmp_path / "a" / "b"
     write_state(nested, {"active": "x", "applied_at": "t",
-                          "bundle_path": "p", "manifest_version": "1",
+                          "package_path": "p", "manifest_version": "1",
                           "backup": "b"})
     assert read_state(nested) is not None
 
 def test_state_file_is_named_correctly(tmp_path):
     write_state(tmp_path, {"active": "x", "applied_at": "t",
-                            "bundle_path": "p", "manifest_version": "1",
+                            "package_path": "p", "manifest_version": "1",
                             "backup": "b"})
     assert (tmp_path / STATE_FILENAME).exists()
 
 def test_clear_state(tmp_path):
     from loadout.state import clear_state
     write_state(tmp_path, {"active": "x", "applied_at": "t",
-                            "bundle_path": "p", "manifest_version": "1",
+                            "package_path": "p", "manifest_version": "1",
                             "backup": "b"})
     clear_state(tmp_path)
     assert read_state(tmp_path) is None

@@ -8,23 +8,23 @@ import yaml
 from loadout.manifest import _REQUIRED_FIELDS, _SEMVER_RE
 
 
-def validate_package(bundle_path: Path | None) -> list[str]:
+def validate_package(package_path: Path | None) -> list[str]:
     """Return a list of validation errors; empty list means valid."""
     errors: list[str] = []
 
-    if bundle_path is None:
+    if package_path is None:
         errors.append("No package path provided")
         return errors
 
-    if not bundle_path.exists():
-        errors.append(f"Package path does not exist: {bundle_path}")
+    if not package_path.exists():
+        errors.append(f"Package path does not exist: {package_path}")
         return errors
 
-    if not bundle_path.is_dir():
-        errors.append(f"Package path is not a directory: {bundle_path}")
+    if not package_path.is_dir():
+        errors.append(f"Package path is not a directory: {package_path}")
         return errors
 
-    manifest_path = bundle_path / "manifest.yaml"
+    manifest_path = package_path / "manifest.yaml"
     if not manifest_path.exists():
         errors.append("manifest.yaml not found in package")
         return errors
@@ -61,8 +61,8 @@ def validate_package(bundle_path: Path | None) -> list[str]:
             declared_paths.append(t["path"])
 
     for path in declared_paths:
-        src = (bundle_path / path).resolve()
-        if not src.is_relative_to(bundle_path.resolve()):
+        src = (package_path / path).resolve()
+        if not src.is_relative_to(package_path.resolve()):
             errors.append(f"Target source escapes package directory: {path}")
             continue
         if not src.exists():

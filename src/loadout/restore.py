@@ -4,6 +4,7 @@ from __future__ import annotations
 import shutil
 from pathlib import Path
 
+from loadout.apply import _confirm
 from loadout.backup import BACKUP_DIR
 from loadout.state import clear_state, read_state
 
@@ -27,6 +28,10 @@ def restore_package(target: Path, backup: str | None = None, yes: bool = False) 
     backup_dir = target / BACKUP_DIR / backup
     if not backup_dir.exists():
         raise ValueError(f"Backup not found: {backup_dir}")
+
+    if not yes:
+        if not _confirm(f"Restore {target} from backup {backup}?"):
+            raise ValueError("Aborted (use --yes to skip confirmation)")
 
     placed_paths = (state or {}).get("placed_paths", [])
     target_resolved = target.resolve()

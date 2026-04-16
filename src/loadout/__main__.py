@@ -103,16 +103,14 @@ def build_parser() -> argparse.ArgumentParser:
     p_pack.add_argument("--output", default=None, help="Output package directory")
     p_pack.add_argument("--yes", action="store_true", help="Skip confirmation prompts")
 
-    # capture (hidden alias for pack)
-    p_capture = sub.add_parser("capture", help=argparse.SUPPRESS)
-    p_capture.add_argument("--source", default=None, help="Source directory (default: ~/.claude)")
-    p_capture.add_argument("--output", default=None, help="Output package directory")
-    p_capture.add_argument("--yes", action="store_true", help="Skip confirmation prompts")
-
     return parser
 
 
 def main() -> None:
+    # Hidden alias: rewrite "capture" to "pack" before argparse sees it
+    if len(sys.argv) > 1 and sys.argv[1] == "capture":
+        sys.argv[1] = "pack"
+
     parser = build_parser()
     args = parser.parse_args()
 
@@ -122,7 +120,6 @@ def main() -> None:
         "status": cmd_status,
         "restore": cmd_restore,
         "pack": cmd_pack,
-        "capture": cmd_pack,
     }
 
     handler = handlers.get(args.command)

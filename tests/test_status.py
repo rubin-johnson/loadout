@@ -21,7 +21,7 @@ def test_status_with_state(tmp_path):
     write_state(tmp_path, {
         "active": "frugal-v2",
         "applied_at": "2026-01-15T10:30:00Z",
-        "bundle_path": "/home/user/bundles/frugal",
+        "package_path": "/home/user/packages/frugal",
         "manifest_version": "0.3.1",
         "backup": "2026-01-15-103000",
     })
@@ -36,7 +36,7 @@ def test_status_env_var(tmp_path, monkeypatch):
     import os
     write_state(tmp_path, {
         "active": "test", "applied_at": "t",
-        "bundle_path": "p", "manifest_version": "1", "backup": "b"
+        "package_path": "p", "manifest_version": "1", "backup": "b"
     })
     env = {**os.environ, "LOADOUT_TARGET_ROOT": str(tmp_path)}
     r = subprocess.run(

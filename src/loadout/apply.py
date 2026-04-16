@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import shutil
+import sys
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
@@ -10,6 +11,14 @@ from loadout.backup import BACKUP_DIR
 from loadout.manifest import Manifest
 from loadout.state import write_state
 from loadout.validate import validate_package
+
+
+def _confirm(message: str) -> bool:
+    """Prompt for confirmation on a TTY. Returns False if not a TTY."""
+    if not sys.stdin.isatty():
+        return False
+    response = input(f"{message} [y/N] ")
+    return response.strip().lower() in ("y", "yes")
 
 
 def _resolve_dest(dest_str: str, target: Path) -> Path | None:
@@ -32,7 +41,7 @@ def _resolve_dest(dest_str: str, target: Path) -> Path | None:
     return resolved
 
 
-def atomic_apply(bundle_path: Path, target: Path, manifest: Manifest) -> None:
+def atomic_apply(package_path: Path, target: Path, manifest: Manifest) -> None:
     """Copy manifest targets from package to target atomically.
 
     Uses a temp dir + move strategy so a failure mid-copy leaves existing
@@ -43,7 +52,7 @@ def atomic_apply(bundle_path: Path, target: Path, manifest: Manifest) -> None:
 
         staged: list[tuple[Path, Path]] = []
         for entry in manifest.targets:
-            src = bundle_path / entry.path
+            src = package_path / entry.path
             dest = _resolve_dest(entry.dest, target)
             if dest is None:
                 continue
@@ -62,13 +71,18 @@ def atomic_apply(bundle_path: Path, target: Path, manifest: Manifest) -> None:
             shutil.move(str(staged_path), final_dest)
 
 
-def apply_package(bundle_path: Path, target: Path, yes: bool = False, dry_run: bool = False) -> None:
+def apply_package(package_path: Path, target: Path, yes: bool = False, dry_run: bool = False) -> None:
     """Apply a package to target directory. Backs up existing files first."""
-    errors = validate_package(bundle_path)
+    errors = validate_package(package_path)
     if errors:
         raise ValueError("Package validation failed:\n" + "\n".join(f"  - {e}" for e in errors))
 
-    manifest = Manifest.load(bundle_path)
+    manifest = Manifest.load(package_path)
+
+    if not yes and not dry_run:
+        if not _confirm(f"Apply {package_path.name} to {target}?"):
+            raise ValueError("Aborted (use --yes to skip confirmation)")
+
     timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d-%H%M%S")
     backup_dir = target / BACKUP_DIR / timestamp
 
@@ -76,7 +90,7 @@ def apply_package(bundle_path: Path, target: Path, yes: bool = False, dry_run: b
         for entry in manifest.targets:
             dest = _resolve_dest(entry.dest, target)
             if dest is not None:
-                print(f"  [dry-run] {bundle_path / entry.path} -> {dest}")
+                print(f"  [dry-run] {package_path / entry.path} -> {dest}")
         return
 
     target.mkdir(parents=True, exist_ok=True)
@@ -94,17 +108,17 @@ def apply_package(bundle_path: Path, target: Path, yes: bool = False, dry_run: b
             shutil.copy2(dest, backup_dest)
 
     placed_paths = [
-        str(_resolve_dest(e.dest, target))
+        str(r)
         for e in manifest.targets
-        if _resolve_dest(e.dest, target) is not None
+        if (r := _resolve_dest(e.dest, target)) is not None
     ]
 
-    atomic_apply(bundle_path, target, manifest)
+    atomic_apply(package_path, target, manifest)
 
     write_state(target, {
         "active": manifest.name,
         "applied_at": datetime.now(timezone.utc).isoformat(),
-        "bundle_path": str(bundle_path.resolve()),
+        "package_path": str(package_path.resolve()),
         "manifest_version": manifest.version,
         "backup": timestamp,
         "placed_paths": placed_paths,

@@ -27,9 +27,8 @@ def test_capture_alias_hidden_in_help():
         capture_output=True,
         text=True,
     )
-    # capture should not appear in help (hidden alias)
-    # but pack should
     assert "pack" in r.stdout
+    assert "capture" not in r.stdout
 
 
 def test_imports():

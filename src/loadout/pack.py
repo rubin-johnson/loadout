@@ -9,7 +9,7 @@ import yaml
 
 from loadout.secrets import scan_for_secrets
 
-DEFAULT_CAPTURES = [
+DEFAULT_TARGETS = [
     ("CLAUDE.md", "CLAUDE.md"),
     ("settings.json", "settings.json"),
     ("hooks", "hooks"),
@@ -31,12 +31,12 @@ def pack(source: Path, output: Path, yes: bool = False) -> None:
 
     targets = []
 
-    for src_name, dest_name in DEFAULT_CAPTURES:
+    for src_name, dest_name in DEFAULT_TARGETS:
         src = source / src_name
         if not src.exists():
             continue
         if src.is_file() and src.suffix in _SKIP_SUFFIXES:
-            print(f"Warning: skipping database file (non-capturable): {src_name}", file=sys.stderr)
+            print(f"Warning: skipping database file (not packable): {src_name}", file=sys.stderr)
             continue
         dest = output / src_name
         if src.is_dir():
@@ -46,8 +46,9 @@ def pack(source: Path, output: Path, yes: bool = False) -> None:
                     if f.is_file():
                         try:
                             warnings = scan_for_secrets(f)
+                            rel = f.relative_to(dest)
                             for w in warnings:
-                                print(f"Warning: potential secret in {src_name}/{f.name}: {w}", file=sys.stderr)
+                                print(f"Warning: potential secret in {src_name}/{rel}: {w}", file=sys.stderr)
                         except UnicodeDecodeError:
                             pass
         else:
@@ -56,7 +57,7 @@ def pack(source: Path, output: Path, yes: bool = False) -> None:
 
     for item in source.iterdir():
         if item.suffix in _SKIP_SUFFIXES:
-            print(f"Warning: skipping database file (non-capturable): {item.name}", file=sys.stderr)
+            print(f"Warning: skipping database file (not packable): {item.name}", file=sys.stderr)
 
     if not targets:
         (output / "CLAUDE.md").write_text("# empty loadout\n")

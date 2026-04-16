@@ -36,8 +36,8 @@ class Manifest:
     targets: list[TargetEntry] = field(default_factory=list)
 
     @classmethod
-    def load(cls, bundle_path: Path) -> "Manifest":
-        return load_manifest(bundle_path)
+    def load(cls, package_path: Path) -> "Manifest":
+        return load_manifest(package_path)
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "Manifest":
@@ -69,10 +69,10 @@ class Manifest:
         }
 
 
-def load_manifest(bundle_path: Path) -> Manifest:
-    manifest_file = Path(bundle_path) / "manifest.yaml"
+def load_manifest(package_path: Path) -> Manifest:
+    manifest_file = Path(package_path) / "manifest.yaml"
     if not manifest_file.exists():
-        raise ManifestError(f"manifest.yaml not found in {bundle_path}")
+        raise ManifestError(f"manifest.yaml not found in {package_path}")
     with manifest_file.open() as f:
         data = yaml.safe_load(f)
     if not isinstance(data, dict):
