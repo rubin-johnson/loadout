@@ -57,7 +57,7 @@ def restore_package(target: Path, backup: str | None = None, yes: bool = False) 
     for item in backup_dir.iterdir():
         dest = target / item.name
         if item.is_dir():
-            shutil.copytree(item, dest)
+            shutil.copytree(item, dest, dirs_exist_ok=True)
         else:
             shutil.copy2(item, dest)
 

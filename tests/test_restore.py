@@ -70,3 +70,41 @@ def test_restore_with_placed_paths_only_removes_tracked(tmp_path):
     assert r.returncode == 0, r.stderr
     assert (target / "CLAUDE.md").read_text() == "original"
     assert (target / "untracked.txt").read_text() == "keep me"
+
+
+def test_restore_with_placed_paths_directory_entry(tmp_path):
+    """Restore with a directory in placed_paths works even if dir partially remains."""
+    target = tmp_path / "target"
+    target.mkdir()
+    hooks = target / "hooks"
+    hooks.mkdir()
+    (hooks / "pre.sh").write_text("original hook")
+    ts = create_backup(target)
+    write_state(target, {
+        "active": "test", "applied_at": "2026-01-01T00:00:00Z",
+        "package_path": "/tmp/p", "manifest_version": "0.1.0", "backup": ts,
+        "placed_paths": [str(hooks)],
+    })
+    (hooks / "pre.sh").write_text("modified hook")
+    (hooks / "extra.sh").write_text("new file from apply")
+    r = _cli("restore", "--target", str(target), "--yes")
+    assert r.returncode == 0, r.stderr
+    assert (hooks / "pre.sh").read_text() == "original hook"
+
+
+def test_apply_without_yes_aborts_in_non_tty(tmp_path):
+    """Apply without --yes and with stdin=DEVNULL (non-TTY) should abort."""
+    import yaml
+    pkg = tmp_path / "pkg"
+    pkg.mkdir()
+    (pkg / "CLAUDE.md").write_text("# test")
+    (pkg / "manifest.yaml").write_text(yaml.dump({
+        "name": "t", "version": "0.1.0", "author": "a",
+        "description": "d",
+        "targets": [{"path": "CLAUDE.md", "dest": "CLAUDE.md"}]
+    }))
+    target = tmp_path / "target"
+    target.mkdir()
+    r = _cli("apply", str(pkg), "--target", str(target))
+    assert r.returncode != 0
+    assert "aborted" in r.stderr.lower() or "yes" in r.stderr.lower()

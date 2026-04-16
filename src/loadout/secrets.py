@@ -9,7 +9,7 @@ _PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     ("OpenAI token (sk-)", re.compile(r"sk-[A-Za-z0-9]+")),
     ("Slack bot token (xoxb-)", re.compile(r"xoxb-[A-Za-z0-9-]+")),
     ("Slack user token (xoxp-)", re.compile(r"xoxp-[A-Za-z0-9-]+")),
-    ("export VAR=VALUE", re.compile(r"export\s+\w+=(\S+)")),
+    ("export of sensitive variable", re.compile(r"export\s+(?:PASSWORD|TOKEN|SECRET|KEY|CREDENTIAL|API)\w*=(\S+)")),
     ("PASSWORD/TOKEN/SECRET/API_KEY assignment", re.compile(r"(?:PASSWORD|TOKEN|SECRET|API_KEY)\s*=\s*(\S+)")),
 ]
 
