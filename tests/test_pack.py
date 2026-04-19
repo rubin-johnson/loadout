@@ -84,6 +84,19 @@ def test_pack_default_output_name(tmp_path, monkeypatch):
     assert (tmp_path / "my-loadout" / "manifest.yaml").exists()
 
 
+def test_pack_includes_agents_md(tmp_path):
+    source = tmp_path / "source"
+    source.mkdir()
+    (source / "AGENTS.md").write_text("# agent instructions")
+    output = tmp_path / "output"
+    from loadout.pack import pack
+    pack(source, output, yes=True)
+    assert (output / "AGENTS.md").exists()
+    manifest = yaml.safe_load((output / "manifest.yaml").read_text())
+    targets = [t["path"] for t in manifest["targets"]]
+    assert "AGENTS.md" in targets
+
+
 def test_capture_alias_works(tmp_path):
     src = _make_source(tmp_path)
     out = tmp_path / "out"

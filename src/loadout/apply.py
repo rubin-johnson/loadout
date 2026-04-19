@@ -102,7 +102,8 @@ def apply_package(package_path: Path, target: Path, yes: bool = False, dry_run: 
         dest = _resolve_dest(entry.dest, target)
         if dest is None or not dest.exists():
             continue
-        backup_dest = backup_dir / entry.path
+        rel = dest.relative_to(target.resolve())
+        backup_dest = backup_dir / rel
         backup_dest.parent.mkdir(parents=True, exist_ok=True)
         if dest.is_dir():
             shutil.copytree(dest, backup_dest)

@@ -53,12 +53,13 @@ def restore_package(target: Path, backup: str | None = None, yes: bool = False) 
             else:
                 item.unlink()
 
-    for item in backup_dir.iterdir():
-        dest = target / item.name
-        if item.is_dir():
-            shutil.copytree(item, dest, dirs_exist_ok=True)
-        else:
-            shutil.copy2(item, dest)
+    for backup_file in backup_dir.rglob("*"):
+        if not backup_file.is_file():
+            continue
+        rel = backup_file.relative_to(backup_dir)
+        dest = target / rel
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(backup_file, dest)
 
     clear_state(target)
     print(f"Restored from backup: {backup}")

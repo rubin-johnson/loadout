@@ -11,6 +11,7 @@ from loadout.secrets import scan_for_secrets
 
 DEFAULT_TARGETS = [
     ("CLAUDE.md", "CLAUDE.md"),
+    ("AGENTS.md", "AGENTS.md"),
     ("settings.json", "settings.json"),
     ("hooks", "hooks"),
     ("bin", "bin"),

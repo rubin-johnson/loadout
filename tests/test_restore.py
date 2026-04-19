@@ -113,6 +113,34 @@ def test_restore_surgical_leaves_untracked_files(tmp_path):
     assert untracked.exists(), "untracked file must survive surgical restore"
 
 
+def test_restore_preserves_nested_dest_structure(tmp_path):
+    """Backup/restore round-trip preserves nested destination paths."""
+    from loadout.apply import apply_package
+    from loadout.restore import restore_package
+
+    # Create a package with path != dest depth
+    pkg = tmp_path / "pkg"
+    pkg.mkdir()
+    (pkg / "pre.sh").write_text("#!/bin/sh\necho hook")
+    import yaml
+    (pkg / "manifest.yaml").write_text(yaml.dump({
+        "name": "test", "version": "0.1.0", "author": "t", "description": "t",
+        "targets": [{"path": "pre.sh", "dest": "hooks/pre.sh"}],
+    }))
+
+    target = tmp_path / "target"
+    target.mkdir()
+    (target / "hooks").mkdir()
+    (target / "hooks" / "pre.sh").write_text("#!/bin/sh\necho original")
+
+    apply_package(pkg, target, yes=True)
+    assert (target / "hooks" / "pre.sh").read_text() == "#!/bin/sh\necho hook"
+
+    restore_package(target, yes=True)
+    assert (target / "hooks" / "pre.sh").read_text() == "#!/bin/sh\necho original"
+    assert not (target / "pre.sh").exists(), "restore must not place file at wrong path"
+
+
 def test_apply_without_yes_aborts_in_non_tty(tmp_path):
     """Apply without --yes and with stdin=DEVNULL (non-TTY) should abort."""
     import yaml
