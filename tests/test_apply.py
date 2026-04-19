@@ -63,6 +63,23 @@ def test_tilde_dest_resolves_to_target(tmp_path):
     assert (target / "CLAUDE.md").read_text() == "tilde"
 
 
+def test_atomic_apply_ignores_source_path_traversal(tmp_path):
+    from loadout.manifest import Manifest, TargetEntry
+    pkg = tmp_path / "pkg"
+    pkg.mkdir()
+    target = tmp_path / "target"
+    target.mkdir()
+    # Manifest entry with path traversal in source
+    manifest = Manifest(
+        name="test", version="0.1.0", author="test",
+        description="test",
+        targets=[TargetEntry(path="../escape.txt", dest="escape.txt")],
+    )
+    (tmp_path / "escape.txt").write_text("should not be copied")
+    atomic_apply(pkg, target, manifest)
+    assert not (target / "escape.txt").exists()
+
+
 def test_atomic_on_move_failure(tmp_path):
     pkg = _make_package(tmp_path, {"a.txt": "new"})
     target = tmp_path / "target"

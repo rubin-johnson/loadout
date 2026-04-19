@@ -92,6 +92,27 @@ def test_restore_with_placed_paths_directory_entry(tmp_path):
     assert (hooks / "pre.sh").read_text() == "original hook"
 
 
+def test_restore_surgical_leaves_untracked_files(tmp_path):
+    """Surgical restore (placed_paths present) must not touch unrelated files."""
+    target = tmp_path / "target"
+    target.mkdir()
+    # Create an untracked file
+    untracked = target / "untracked.txt"
+    untracked.write_text("keep me")
+    # Create a backup
+    backup_dir = target / ".loadout-backups" / "2026-01-01-000000"
+    backup_dir.mkdir(parents=True)
+    (backup_dir / "CLAUDE.md").write_text("restored content")
+    # Write state with placed_paths that does NOT include untracked.txt
+    write_state(target, {
+        "backup": "2026-01-01-000000",
+        "placed_paths": [str(target / "CLAUDE.md")],
+    })
+    from loadout.restore import restore_package
+    restore_package(target, yes=True)
+    assert untracked.exists(), "untracked file must survive surgical restore"
+
+
 def test_apply_without_yes_aborts_in_non_tty(tmp_path):
     """Apply without --yes and with stdin=DEVNULL (non-TTY) should abort."""
     import yaml

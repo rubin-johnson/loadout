@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -17,7 +18,11 @@ def read_state(target: Path) -> dict[str, Any] | None:
     if not path.exists():
         return None
     with path.open() as f:
-        return json.load(f)
+        try:
+            return json.load(f)
+        except json.JSONDecodeError:
+            print(f"Warning: state file is corrupted and will be ignored: {path}", file=sys.stderr)
+            return None
 
 
 def write_state(target: Path, data: dict[str, Any]) -> None:

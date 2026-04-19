@@ -18,6 +18,7 @@ DEFAULT_TARGETS = [
 
 _SKIP_SUFFIXES = {".db"}
 _SCAN_DIRS = {"hooks", "bin"}
+_SCAN_FILES = {"CLAUDE.md", "AGENTS.md", "settings.json"}
 
 
 def pack(source: Path, output: Path, yes: bool = False) -> None:
@@ -53,6 +54,13 @@ def pack(source: Path, output: Path, yes: bool = False) -> None:
                             pass
         else:
             shutil.copy2(src, dest)
+            if src_name in _SCAN_FILES and dest.is_file():
+                try:
+                    warnings = scan_for_secrets(dest)
+                    for w in warnings:
+                        print(f"Warning: potential secret in {src_name}: {w}", file=sys.stderr)
+                except UnicodeDecodeError:
+                    pass
         targets.append({"path": src_name, "dest": dest_name})
 
     for item in source.iterdir():

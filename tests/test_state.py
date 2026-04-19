@@ -36,3 +36,12 @@ def test_clear_state(tmp_path):
                             "backup": "b"})
     clear_state(tmp_path)
     assert read_state(tmp_path) is None
+
+
+def test_read_state_corrupted_returns_none(tmp_path, capsys):
+    state_file = tmp_path / STATE_FILENAME
+    state_file.write_text("{ this is not json")
+    result = read_state(tmp_path)
+    assert result is None
+    captured = capsys.readouterr()
+    assert "corrupted" in captured.err

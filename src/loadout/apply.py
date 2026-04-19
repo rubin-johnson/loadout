@@ -53,6 +53,8 @@ def atomic_apply(package_path: Path, target: Path, manifest: Manifest) -> None:
         staged: list[tuple[Path, Path]] = []
         for entry in manifest.targets:
             src = package_path / entry.path
+            if not src.resolve().is_relative_to(package_path.resolve()):
+                continue  # skip paths that escape the package directory
             dest = _resolve_dest(entry.dest, target)
             if dest is None:
                 continue

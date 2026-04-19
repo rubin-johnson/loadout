@@ -30,9 +30,10 @@ def restore_package(target: Path, backup: str | None = None, yes: bool = False) 
         if not _confirm(f"Restore {target} from backup {backup}?"):
             raise ValueError("Aborted (use --yes to skip confirmation)")
 
-    placed_paths = (state or {}).get("placed_paths", [])
+    placed_paths = (state or {}).get("placed_paths")  # None if absent, [] if explicitly empty
     target_resolved = target.resolve()
-    if placed_paths:
+    if placed_paths is not None:
+        # surgical: only remove what was placed
         for path_str in placed_paths:
             p = Path(path_str).resolve()
             if not p.is_relative_to(target_resolved):
@@ -43,6 +44,7 @@ def restore_package(target: Path, backup: str | None = None, yes: bool = False) 
                 else:
                     p.unlink()
     else:
+        # legacy state without placed_paths tracking — nuke and restore
         for item in target.iterdir():
             if item.name == BACKUP_DIR:
                 continue
