@@ -27,11 +27,7 @@ def list_backups(target_dir: pathlib.Path) -> list[str]:
     backup_root = target_dir / BACKUP_DIR
     if not backup_root.exists():
         return []
-    return sorted(
-        entry.name
-        for entry in backup_root.iterdir()
-        if entry.is_dir() and _TS_PATTERN.match(entry.name)
-    )
+    return sorted(entry.name for entry in backup_root.iterdir() if entry.is_dir() and _TS_PATTERN.match(entry.name))
 
 
 def get_latest_backup(target_dir: pathlib.Path) -> str | None:

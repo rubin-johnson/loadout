@@ -1,4 +1,5 @@
 """Package apply logic."""
+
 from __future__ import annotations
 
 import shutil
@@ -26,7 +27,7 @@ def _resolve_dest(dest_str: str, target: Path) -> Path | None:
     Returns None for absolute paths or paths that escape target.
     """
     if dest_str.startswith("~/.claude/"):
-        dest_str = dest_str[len("~/.claude/"):]
+        dest_str = dest_str[len("~/.claude/") :]
     elif dest_str in ("~/.claude", "~"):
         return None
     elif dest_str.startswith("~/"):
@@ -110,19 +111,18 @@ def apply_package(package_path: Path, target: Path, yes: bool = False, dry_run: 
         else:
             shutil.copy2(dest, backup_dest)
 
-    placed_paths = [
-        str(r)
-        for e in manifest.targets
-        if (r := _resolve_dest(e.dest, target)) is not None
-    ]
+    placed_paths = [str(r) for e in manifest.targets if (r := _resolve_dest(e.dest, target)) is not None]
 
     atomic_apply(package_path, target, manifest)
 
-    write_state(target, {
-        "active": manifest.name,
-        "applied_at": datetime.now(timezone.utc).isoformat(),
-        "package_path": str(package_path.resolve()),
-        "manifest_version": manifest.version,
-        "backup": timestamp,
-        "placed_paths": placed_paths,
-    })
+    write_state(
+        target,
+        {
+            "active": manifest.name,
+            "applied_at": datetime.now(timezone.utc).isoformat(),
+            "package_path": str(package_path.resolve()),
+            "manifest_version": manifest.version,
+            "backup": timestamp,
+            "placed_paths": placed_paths,
+        },
+    )

@@ -14,13 +14,10 @@ def _make_package(tmp_path, files: dict, targets_override=None):
         p = pkg / name
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(content)
-    targets = targets_override or [
-        {"path": name, "dest": name} for name in files
-    ]
-    (pkg / "manifest.yaml").write_text(yaml.dump({
-        "name": "t", "version": "0.1.0", "author": "a",
-        "description": "d", "targets": targets
-    }))
+    targets = targets_override or [{"path": name, "dest": name} for name in files]
+    (pkg / "manifest.yaml").write_text(
+        yaml.dump({"name": "t", "version": "0.1.0", "author": "a", "description": "d", "targets": targets})
+    )
     return pkg
 
 
@@ -65,13 +62,16 @@ def test_tilde_dest_resolves_to_target(tmp_path):
 
 def test_atomic_apply_ignores_source_path_traversal(tmp_path):
     from loadout.manifest import Manifest, TargetEntry
+
     pkg = tmp_path / "pkg"
     pkg.mkdir()
     target = tmp_path / "target"
     target.mkdir()
     # Manifest entry with path traversal in source
     manifest = Manifest(
-        name="test", version="0.1.0", author="test",
+        name="test",
+        version="0.1.0",
+        author="test",
         description="test",
         targets=[TargetEntry(path="../escape.txt", dest="escape.txt")],
     )

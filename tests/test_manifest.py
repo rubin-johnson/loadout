@@ -11,9 +11,11 @@ def _write_manifest(path: pathlib.Path, data: dict):
 
 
 VALID = {
-    "name": "my-loadout", "version": "1.2.3", "author": "me",
+    "name": "my-loadout",
+    "version": "1.2.3",
+    "author": "me",
     "description": "desc",
-    "targets": [{"path": "CLAUDE.md", "dest": "~/.claude/CLAUDE.md"}]
+    "targets": [{"path": "CLAUDE.md", "dest": "~/.claude/CLAUDE.md"}],
 }
 
 

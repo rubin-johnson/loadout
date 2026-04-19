@@ -1,4 +1,5 @@
 """Package manifest loading and validation."""
+
 from __future__ import annotations
 
 import re
@@ -47,10 +48,7 @@ class Manifest:
         version = data["version"]
         if not isinstance(version, str) or not _SEMVER_RE.match(str(version)):
             raise ManifestError(f"invalid semver version: {version!r}")
-        targets = [
-            TargetEntry(path=t["path"], dest=t["dest"])
-            for t in data["targets"]
-        ]
+        targets = [TargetEntry(path=t["path"], dest=t["dest"]) for t in data["targets"]]
         return cls(
             name=data["name"],
             version=str(version),

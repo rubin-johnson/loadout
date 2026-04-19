@@ -7,21 +7,28 @@ from loadout.state import read_state, write_state
 
 def _cli(*args):
     return subprocess.run(
-        [sys.executable, "-m", "loadout", *args],
-        capture_output=True, text=True, stdin=subprocess.DEVNULL
+        [sys.executable, "-m", "loadout", *args], capture_output=True, text=True, stdin=subprocess.DEVNULL
     )
+
 
 def _setup_target_with_backup(tmp_path, original_content="original"):
     target = tmp_path / "target"
     target.mkdir()
     (target / "CLAUDE.md").write_text(original_content)
     ts = create_backup(target)
-    write_state(target, {
-        "active": "test", "applied_at": "2026-01-01T00:00:00Z",
-        "package_path": "/tmp/p", "manifest_version": "0.1.0", "backup": ts
-    })
+    write_state(
+        target,
+        {
+            "active": "test",
+            "applied_at": "2026-01-01T00:00:00Z",
+            "package_path": "/tmp/p",
+            "manifest_version": "0.1.0",
+            "backup": ts,
+        },
+    )
     (target / "CLAUDE.md").write_text("modified by apply")
     return target, ts
+
 
 def test_restore_from_state(tmp_path):
     target, ts = _setup_target_with_backup(tmp_path)
@@ -29,10 +36,12 @@ def test_restore_from_state(tmp_path):
     assert r.returncode == 0, r.stderr
     assert (target / "CLAUDE.md").read_text() == "original"
 
+
 def test_restore_clears_state(tmp_path):
     target, ts = _setup_target_with_backup(tmp_path)
     _cli("restore", "--target", str(target), "--yes")
     assert read_state(target) is None
+
 
 def test_restore_explicit_backup(tmp_path):
     target, ts = _setup_target_with_backup(tmp_path)
@@ -40,11 +49,13 @@ def test_restore_explicit_backup(tmp_path):
     assert r.returncode == 0, r.stderr
     assert (target / "CLAUDE.md").read_text() == "original"
 
+
 def test_restore_no_state_no_backup_flag(tmp_path):
     target = tmp_path / "target"
     target.mkdir()
     r = _cli("restore", "--target", str(target), "--yes")
     assert r.returncode != 0
+
 
 def test_restore_bad_backup_timestamp(tmp_path):
     target = tmp_path / "target"
@@ -60,11 +71,17 @@ def test_restore_with_placed_paths_only_removes_tracked(tmp_path):
     (target / "CLAUDE.md").write_text("original")
     (target / "untracked.txt").write_text("keep me")
     ts = create_backup(target)
-    write_state(target, {
-        "active": "test", "applied_at": "2026-01-01T00:00:00Z",
-        "package_path": "/tmp/p", "manifest_version": "0.1.0", "backup": ts,
-        "placed_paths": [str(target / "CLAUDE.md")],
-    })
+    write_state(
+        target,
+        {
+            "active": "test",
+            "applied_at": "2026-01-01T00:00:00Z",
+            "package_path": "/tmp/p",
+            "manifest_version": "0.1.0",
+            "backup": ts,
+            "placed_paths": [str(target / "CLAUDE.md")],
+        },
+    )
     (target / "CLAUDE.md").write_text("modified by apply")
     r = _cli("restore", "--target", str(target), "--yes")
     assert r.returncode == 0, r.stderr
@@ -80,11 +97,17 @@ def test_restore_with_placed_paths_directory_entry(tmp_path):
     hooks.mkdir()
     (hooks / "pre.sh").write_text("original hook")
     ts = create_backup(target)
-    write_state(target, {
-        "active": "test", "applied_at": "2026-01-01T00:00:00Z",
-        "package_path": "/tmp/p", "manifest_version": "0.1.0", "backup": ts,
-        "placed_paths": [str(hooks)],
-    })
+    write_state(
+        target,
+        {
+            "active": "test",
+            "applied_at": "2026-01-01T00:00:00Z",
+            "package_path": "/tmp/p",
+            "manifest_version": "0.1.0",
+            "backup": ts,
+            "placed_paths": [str(hooks)],
+        },
+    )
     (hooks / "pre.sh").write_text("modified hook")
     (hooks / "extra.sh").write_text("new file from apply")
     r = _cli("restore", "--target", str(target), "--yes")
@@ -104,11 +127,15 @@ def test_restore_surgical_leaves_untracked_files(tmp_path):
     backup_dir.mkdir(parents=True)
     (backup_dir / "CLAUDE.md").write_text("restored content")
     # Write state with placed_paths that does NOT include untracked.txt
-    write_state(target, {
-        "backup": "2026-01-01-000000",
-        "placed_paths": [str(target / "CLAUDE.md")],
-    })
+    write_state(
+        target,
+        {
+            "backup": "2026-01-01-000000",
+            "placed_paths": [str(target / "CLAUDE.md")],
+        },
+    )
     from loadout.restore import restore_package
+
     restore_package(target, yes=True)
     assert untracked.exists(), "untracked file must survive surgical restore"
 
@@ -123,10 +150,18 @@ def test_restore_preserves_nested_dest_structure(tmp_path):
     pkg.mkdir()
     (pkg / "pre.sh").write_text("#!/bin/sh\necho hook")
     import yaml
-    (pkg / "manifest.yaml").write_text(yaml.dump({
-        "name": "test", "version": "0.1.0", "author": "t", "description": "t",
-        "targets": [{"path": "pre.sh", "dest": "hooks/pre.sh"}],
-    }))
+
+    (pkg / "manifest.yaml").write_text(
+        yaml.dump(
+            {
+                "name": "test",
+                "version": "0.1.0",
+                "author": "t",
+                "description": "t",
+                "targets": [{"path": "pre.sh", "dest": "hooks/pre.sh"}],
+            }
+        )
+    )
 
     target = tmp_path / "target"
     target.mkdir()
@@ -144,14 +179,21 @@ def test_restore_preserves_nested_dest_structure(tmp_path):
 def test_apply_without_yes_aborts_in_non_tty(tmp_path):
     """Apply without --yes and with stdin=DEVNULL (non-TTY) should abort."""
     import yaml
+
     pkg = tmp_path / "pkg"
     pkg.mkdir()
     (pkg / "CLAUDE.md").write_text("# test")
-    (pkg / "manifest.yaml").write_text(yaml.dump({
-        "name": "t", "version": "0.1.0", "author": "a",
-        "description": "d",
-        "targets": [{"path": "CLAUDE.md", "dest": "CLAUDE.md"}]
-    }))
+    (pkg / "manifest.yaml").write_text(
+        yaml.dump(
+            {
+                "name": "t",
+                "version": "0.1.0",
+                "author": "a",
+                "description": "d",
+                "targets": [{"path": "CLAUDE.md", "dest": "CLAUDE.md"}],
+            }
+        )
+    )
     target = tmp_path / "target"
     target.mkdir()
     r = _cli("apply", str(pkg), "--target", str(target))

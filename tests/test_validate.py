@@ -7,9 +7,11 @@ def _package(tmp_path, **overrides):
     d = tmp_path / "pkg"
     d.mkdir()
     data = {
-        "name": "t", "version": "0.1.0", "author": "a",
+        "name": "t",
+        "version": "0.1.0",
+        "author": "a",
         "description": "d",
-        "targets": [{"path": "CLAUDE.md", "dest": "CLAUDE.md"}]
+        "targets": [{"path": "CLAUDE.md", "dest": "CLAUDE.md"}],
     }
     data.update(overrides)
     (d / "CLAUDE.md").write_text("x")
@@ -52,9 +54,16 @@ def test_multiple_errors_reported(tmp_path):
 
 def test_targets_missing_dest_field(tmp_path):
     b = _package(tmp_path)
-    (b / "manifest.yaml").write_text(yaml.dump({
-        "name": "t", "version": "0.1.0", "author": "a", "description": "d",
-        "targets": [{"path": "CLAUDE.md"}]  # no dest
-    }))
+    (b / "manifest.yaml").write_text(
+        yaml.dump(
+            {
+                "name": "t",
+                "version": "0.1.0",
+                "author": "a",
+                "description": "d",
+                "targets": [{"path": "CLAUDE.md"}],  # no dest
+            }
+        )
+    )
     errors = validate_package(b)
     assert any("dest" in e for e in errors)

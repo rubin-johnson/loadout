@@ -1,4 +1,5 @@
 """pytest configuration: ensure src/ is on PYTHONPATH for subprocess tests."""
+
 import os
 import sys
 from pathlib import Path

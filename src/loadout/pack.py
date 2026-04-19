@@ -1,4 +1,5 @@
 """Pack current config into a loadout package."""
+
 from __future__ import annotations
 
 import shutil

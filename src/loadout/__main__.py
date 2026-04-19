@@ -1,4 +1,5 @@
 """CLI entry point for loadout."""
+
 from __future__ import annotations
 
 import argparse
@@ -8,6 +9,7 @@ from pathlib import Path
 
 def cmd_validate(args: argparse.Namespace) -> int:
     from loadout.validate import validate_package
+
     pkg = Path(args.package)
     errors = validate_package(pkg)
     if errors:
@@ -21,6 +23,7 @@ def cmd_validate(args: argparse.Namespace) -> int:
 def cmd_apply(args: argparse.Namespace) -> int:
     from loadout.apply import apply_package
     from loadout.paths import get_target_root
+
     pkg = Path(args.package)
     target = get_target_root(args.target)
     try:
@@ -36,6 +39,7 @@ def cmd_apply(args: argparse.Namespace) -> int:
 def cmd_status(args: argparse.Namespace) -> int:
     from loadout.paths import get_target_root
     from loadout.status import show_status
+
     target = get_target_root(args.target)
     show_status(target)
     return 0
@@ -44,6 +48,7 @@ def cmd_status(args: argparse.Namespace) -> int:
 def cmd_restore(args: argparse.Namespace) -> int:
     from loadout.paths import get_target_root
     from loadout.restore import restore_package
+
     target = get_target_root(args.target)
     try:
         restore_package(target, backup=args.backup, yes=args.yes)
@@ -56,6 +61,7 @@ def cmd_restore(args: argparse.Namespace) -> int:
 def cmd_pack(args: argparse.Namespace) -> int:
     from loadout.pack import pack
     from loadout.paths import get_target_root
+
     source = Path(args.source) if args.source else get_target_root()
     output = Path(args.output) if args.output else Path.cwd() / "my-loadout"
     try:

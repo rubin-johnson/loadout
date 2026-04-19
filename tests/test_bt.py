@@ -10,18 +10,27 @@ import yaml
 def _make_package(path):
     path.mkdir(parents=True, exist_ok=True)
     (path / "CLAUDE.md").write_text("# smoke")
-    (path / "manifest.yaml").write_text(yaml.dump({
-        "name": "smoke", "version": "0.0.1", "author": "ci",
-        "description": "smoke test",
-        "targets": [{"path": "CLAUDE.md", "dest": "CLAUDE.md"}]
-    }))
+    (path / "manifest.yaml").write_text(
+        yaml.dump(
+            {
+                "name": "smoke",
+                "version": "0.0.1",
+                "author": "ci",
+                "description": "smoke test",
+                "targets": [{"path": "CLAUDE.md", "dest": "CLAUDE.md"}],
+            }
+        )
+    )
 
 
 def _cli(*args, env=None, **kwargs):
     return subprocess.run(
         [sys.executable, "-m", "loadout", *args],
-        capture_output=True, text=True, stdin=subprocess.DEVNULL,
-        env=env, **kwargs
+        capture_output=True,
+        text=True,
+        stdin=subprocess.DEVNULL,
+        env=env,
+        **kwargs,
     )
 
 
@@ -71,19 +80,24 @@ def test_bt005_smoke_pack(tmp_path):
 
 def _run_validate(package_path):
     return subprocess.run(
-        [sys.executable, "-m", "loadout", "validate", str(package_path)],
-        capture_output=True, text=True
+        [sys.executable, "-m", "loadout", "validate", str(package_path)], capture_output=True, text=True
     )
 
 
 def _make_valid_package(path: pathlib.Path):
     path.mkdir(parents=True, exist_ok=True)
     (path / "CLAUDE.md").write_text("# test")
-    (path / "manifest.yaml").write_text(yaml.dump({
-        "name": "t", "version": "0.1.0", "author": "a",
-        "description": "d",
-        "targets": [{"path": "CLAUDE.md", "dest": "~/.claude/CLAUDE.md"}]
-    }))
+    (path / "manifest.yaml").write_text(
+        yaml.dump(
+            {
+                "name": "t",
+                "version": "0.1.0",
+                "author": "a",
+                "description": "d",
+                "targets": [{"path": "CLAUDE.md", "dest": "~/.claude/CLAUDE.md"}],
+            }
+        )
+    )
 
 
 def test_bt004_missing_manifest(tmp_path):
@@ -97,9 +111,7 @@ def test_bt004_missing_manifest(tmp_path):
 def test_bt004_missing_required_field(tmp_path):
     pkg = tmp_path / "pkg"
     pkg.mkdir()
-    (pkg / "manifest.yaml").write_text(
-        "name: t\nversion: 0.1.0\ndescription: d\ntargets: []\n"
-    )
+    (pkg / "manifest.yaml").write_text("name: t\nversion: 0.1.0\ndescription: d\ntargets: []\n")
     r = _run_validate(pkg)
     assert r.returncode != 0
     out = r.stdout + r.stderr
@@ -109,10 +121,9 @@ def test_bt004_missing_required_field(tmp_path):
 def test_bt004_invalid_semver(tmp_path):
     pkg = tmp_path / "pkg"
     pkg.mkdir()
-    (pkg / "manifest.yaml").write_text(yaml.dump({
-        "name": "t", "version": "not-semver", "author": "a",
-        "description": "d", "targets": []
-    }))
+    (pkg / "manifest.yaml").write_text(
+        yaml.dump({"name": "t", "version": "not-semver", "author": "a", "description": "d", "targets": []})
+    )
     r = _run_validate(pkg)
     assert r.returncode != 0
 
@@ -120,11 +131,17 @@ def test_bt004_invalid_semver(tmp_path):
 def test_bt004_missing_target_file(tmp_path):
     pkg = tmp_path / "pkg"
     pkg.mkdir()
-    (pkg / "manifest.yaml").write_text(yaml.dump({
-        "name": "t", "version": "0.1.0", "author": "a",
-        "description": "d",
-        "targets": [{"path": "missing.md", "dest": "~/.claude/missing.md"}]
-    }))
+    (pkg / "manifest.yaml").write_text(
+        yaml.dump(
+            {
+                "name": "t",
+                "version": "0.1.0",
+                "author": "a",
+                "description": "d",
+                "targets": [{"path": "missing.md", "dest": "~/.claude/missing.md"}],
+            }
+        )
+    )
     r = _run_validate(pkg)
     assert r.returncode != 0
     out = r.stdout + r.stderr
@@ -151,9 +168,10 @@ def test_bt003_no_tty_target(tmp_path):
     target.mkdir()
 
     r = subprocess.run(
-        [sys.executable, "-m", "loadout", "apply", str(pkg),
-         "--target", str(target), "--yes"],
-        capture_output=True, text=True, stdin=subprocess.DEVNULL
+        [sys.executable, "-m", "loadout", "apply", str(pkg), "--target", str(target), "--yes"],
+        capture_output=True,
+        text=True,
+        stdin=subprocess.DEVNULL,
     )
     assert r.returncode == 0, r.stderr
     assert (target / "config.md").read_text() == "# ci config"
@@ -174,7 +192,10 @@ def test_bt003_env_var_target(tmp_path):
     env = {**os.environ, "LOADOUT_TARGET_ROOT": str(target)}
     r = subprocess.run(
         [sys.executable, "-m", "loadout", "apply", str(pkg), "--yes"],
-        capture_output=True, text=True, stdin=subprocess.DEVNULL, env=env
+        capture_output=True,
+        text=True,
+        stdin=subprocess.DEVNULL,
+        env=env,
     )
     assert r.returncode == 0, r.stderr
     assert (target / "config.md").read_text() == "# env config"
@@ -192,8 +213,7 @@ def test_bt001_roundtrip(tmp_path):
     pkg = tmp_path / "pkg"
     pkg.mkdir()
     (pkg / "manifest.yaml").write_text(
-        "name: test\nversion: 0.1.0\nauthor: ci\ndescription: d\n"
-        "targets:\n  - path: CLAUDE.md\n    dest: CLAUDE.md\n"
+        "name: test\nversion: 0.1.0\nauthor: ci\ndescription: d\ntargets:\n  - path: CLAUDE.md\n    dest: CLAUDE.md\n"
     )
     (pkg / "CLAUDE.md").write_text("# test")
 
@@ -223,8 +243,7 @@ def test_bt002_partial_failure_atomic(tmp_path):
     pkg = tmp_path / "pkg"
     pkg.mkdir()
     (pkg / "manifest.yaml").write_text(
-        "name: test\nversion: 0.1.0\nauthor: ci\ndescription: d\n"
-        "targets:\n  - path: a.txt\n    dest: a.txt\n"
+        "name: test\nversion: 0.1.0\nauthor: ci\ndescription: d\ntargets:\n  - path: a.txt\n    dest: a.txt\n"
     )
     (pkg / "a.txt").write_text("new")
 

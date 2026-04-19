@@ -8,8 +8,7 @@ from loadout.validate import validate_package
 
 def _cli(*args):
     return subprocess.run(
-        [sys.executable, "-m", "loadout", *args],
-        capture_output=True, text=True, stdin=subprocess.DEVNULL
+        [sys.executable, "-m", "loadout", *args], capture_output=True, text=True, stdin=subprocess.DEVNULL
     )
 
 
@@ -90,6 +89,7 @@ def test_pack_includes_agents_md(tmp_path):
     (source / "AGENTS.md").write_text("# agent instructions")
     output = tmp_path / "output"
     from loadout.pack import pack
+
     pack(source, output, yes=True)
     assert (output / "AGENTS.md").exists()
     manifest = yaml.safe_load((output / "manifest.yaml").read_text())
