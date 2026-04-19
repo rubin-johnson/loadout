@@ -16,4 +16,5 @@ build/
 # Agent artifacts
 .ralphael/
 .worktrees/
+.claude/
 *.log

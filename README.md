@@ -14,14 +14,20 @@ Claude Code configurations (CLAUDE.md, settings.json, hooks, bin scripts) are ty
 ## Install
 
 ```bash
-# From source
+# From source (recommended)
+git clone https://github.com/rubin-johnson/loadout.git
+cd loadout
 uv tool install .
 
-# Or run directly
+# Or run directly without installing
 uv run loadout --help
 ```
 
 Requires Python 3.11+.
+
+> **Note:** There is an unrelated package named `loadout` on PyPI. Do not run
+> `pip install loadout` — it will install the wrong package. Install from this
+> repository instead.
 
 ## Quick start
 
