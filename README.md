@@ -1,3 +1,7 @@
+> **Retired.** This project has been retired. Its functionality has been inlined into token_miser. Use kanon for package distribution.
+
+---
+
 # loadout
 
 CLI tool to manage Claude Code configuration packages. Pack, apply, restore, version, and share a complete Claude Code setup as a single unit.
